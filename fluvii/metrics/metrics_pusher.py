@@ -13,30 +13,21 @@ class MetricsPusher:
     Pushes metrics to a prometheus pushgateway in a Kubernetes environment
     """
 
-    def __init__(self, registry, hostname, metrics_service_name, metrics_service_port, metrics_pod_port):
+    def __init__(self, registry, hostname, service_name, service_port, app_port):
         """
         Initializes metrics pusher
 
-        :param job: Unique name of running application
-        :param metrics_service_name: host name of metrics service
-        :param metrics_service_port: port of metrics service
-        :param metrics_pod_port: port for metrics cache on individual pod
+        :param hostname: Unique name of running application
+        :param service_name: host name of metrics service
+        :param service_port: port of metrics service
+        :param app_port: port for metrics cache on individual pod
         """
-
-        if not job:
-            job = env_vars()['NU_HOSTNAME']
-        if not metrics_service_name:
-            metrics_service_name = env_vars()['NU_METRICS_SERVICE_NAME']
-        if not metrics_service_port:
-            metrics_service_port = env_vars()['NU_METRICS_SERVICE_PORT']
-        if not metrics_pod_port:
-            metrics_pod_port = env_vars()['NU_METRICS_POD_PORT']
 
         self.registry = registry
         self.hostname = hostname
-        self.metrics_service_name = metrics_service_name
-        self.metrics_service_port = metrics_service_port
-        self.metrics_pod_port = metrics_pod_port
+        self.service_name = service_name
+        self.service_port = service_port
+        self.app_port = app_port
 
         self.metrics_pod_ips = []
 
@@ -48,9 +39,8 @@ class MetricsPusher:
         redundant Prometheus pushgateways.
         :return: None
         """
-        socket_info_list = socket.getaddrinfo(
-            self.metrics_service_name, self.metrics_service_port)
-        self.metrics_pod_ips = {f'{result[-1][0]}:{self.metrics_pod_port}'
+        socket_info_list = socket.getaddrinfo(self.service_name, self.service_port)
+        self.metrics_pod_ips = {f'{result[-1][0]}:{self.app_port}'
                                 for result in socket_info_list}
         LOGGER.debug(f'Set gateway addresses: {self.metrics_pod_ips}')
 

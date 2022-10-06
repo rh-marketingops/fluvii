@@ -1,13 +1,13 @@
 from confluent_kafka.error import KafkaException
 from confluent_kafka import TopicPartition
-from .general_utils import log_and_raise_error
-from .custom_exceptions import NoMessageError, SignalRaise, GracefulTransactionFailure, FatalTransactionFailure, PartitionsAssigned, FinishedTransactionBatch
-from .consumer import TransactionalConsumer
-from .producer import TransactionalProducer
+from fluvii.general_utils import log_and_raise_error
+from fluvii.custom_exceptions import NoMessageError, SignalRaise, GracefulTransactionFailure, FatalTransactionFailure, PartitionsAssigned, FinishedTransactionBatch
+from fluvii.consumer import TransactionalConsumer
+from fluvii.producer import TransactionalProducer
+from fluvii.transaction import Transaction, TableTransaction
+from fluvii.schema_registry import SchemaRegistry
+from fluvii.sqlite import SqliteFluvii
 from .config import FluviiConfig
-from .schema_registry import SchemaRegistry
-from .sqlite_utils import SqliteFluvii
-from .transaction import Transaction, TableTransaction
 import logging
 from datetime import datetime
 from collections import deque
@@ -166,10 +166,9 @@ class FluviiApp:
         except SignalRaise:
             LOGGER.info('Shutdown requested via SignalRaise!')
         except Exception as e:
-            raise
-            # LOGGER.error(e)
-            # if self.metrics_manager:
-            #     log_and_raise_error(self.metrics_manager, e)
+            LOGGER.error(e)
+            if self.metrics_manager:
+                log_and_raise_error(self.metrics_manager, e)
         finally:
             self._app_shutdown()
 
@@ -353,7 +352,7 @@ class FluviiTableApp(FluviiApp):
         self._table_recovery_set_offset_seek()
 
     def _table_db_init(self, partition):
-        self.tables[partition] = SqliteFluvii(f'p{partition}', fluvii_config=self._config)
+        self.tables[partition] = SqliteFluvii(f'p{partition}', self._config)
 
     def _table_db_assignments(self):
         while self._pending_table_db_assignments:

@@ -1,6 +1,6 @@
 import sys
 import logging
-from .config import FluviiConfig
+from os import environ
 
 
 def _init_handler(loglevel=None):
@@ -19,7 +19,7 @@ def _init_handler(loglevel=None):
 
 
 def _get_loglevel():
-    return FluviiConfig().loglevel
+    return environ.get('FLUVII_LOGLEVEL', 'INFO')
 
 
 def init_logger(name, loglevel=None):

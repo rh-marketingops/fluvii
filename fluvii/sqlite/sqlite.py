@@ -5,15 +5,13 @@ import json
 from copy import deepcopy
 import logging
 from time import sleep
-from .config import FluviiConfig
 
 LOGGER = logging.getLogger(__name__)
 
 
+# TODO: make a non-fluvii version for just reading tables like a typical client
 class SqliteFluvii:
-    def __init__(self, table_name, fluvii_config=None, table_path=None, auto_init=True, max_pending_writes_count=None, min_cache_count=None, max_cache_count=None):
-        if not fluvii_config:
-            fluvii_config = FluviiConfig()
+    def __init__(self, table_name, fluvii_config, table_path=None, auto_init=True, max_pending_writes_count=None, min_cache_count=None, max_cache_count=None):
         if not max_pending_writes_count:
             max_pending_writes_count = fluvii_config.consumer_config.batch_consume_max_count * 5
         if not min_cache_count:

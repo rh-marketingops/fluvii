@@ -1,4 +1,5 @@
 from confluent_kafka.schema_registry import SchemaRegistryClient
+from urllib.parse import urlparse
 
 
 # fixes a bug in confluent-kafka TODO: keep a look out for this in >1.8.2, should be fixed since I took it from a MR.
@@ -12,6 +13,9 @@ def patched_schema_loads(schema_str):
 
 import confluent_kafka
 confluent_kafka.schema_registry.avro._schema_loads = patched_schema_loads
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 class SchemaRegistry:
@@ -21,10 +25,25 @@ class SchemaRegistry:
         self._auth = auth_config
         self._init_registry()
 
+    def __getattr__(self, attr):
+        """Note: this includes methods as well!"""
+        try:
+            return self.__getattribute__(attr)
+        except AttributeError:
+            return self.registry.__getattribute__(attr)
+
     def _init_registry(self):
+        url = urlparse(self.url)
         if self._auth:
-            full_url = f"{self._auth.username}:{self._auth.password}@{self.url}"
+            auth = f"{self._auth.username}:{self._auth.password}@"
         else:
-            full_url = self.url
-        # TODO: allow the original URL to have http/s in it, and put it in the right spot
-        self.registry = SchemaRegistryClient({'url': f"https://{full_url}"})
+            auth = ''
+        scheme = url.scheme
+        if not scheme:
+            if auth:
+                scheme = 'https://'
+            else:
+                scheme = 'http://'
+            url = url._replace(scheme='')
+        self.registry = SchemaRegistryClient({'url': f'{scheme}{auth}{url.geturl()}'})
+

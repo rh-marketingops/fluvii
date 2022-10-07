@@ -108,10 +108,10 @@ class FluviiApp:
 
     def _no_message_callback(self):
         self._producer.poll(0)
-        LOGGER.info('No messages!')
+        LOGGER.debug('No messages!')
 
     def _finalize_transaction_batch(self):
-        LOGGER.debug('Finalizing transaction batch...')
+        LOGGER.debug('Finalizing transaction batch, if necessary...')
         self.commit()
 
     def _app_batch_run_loop(self, **kwargs):

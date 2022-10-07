@@ -1,8 +1,8 @@
 from confluent_kafka import SerializingProducer
 from confluent_kafka.admin import AdminClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
-from .general_utils import parse_headers
-from .custom_exceptions import ProducerTimeoutFailure
+from fluvii.general_utils import parse_headers
+from fluvii.custom_exceptions import ProducerTimeoutFailure
 import json
 import mmh3
 import uuid
@@ -71,10 +71,13 @@ class Producer:
         self._producer = SerializingProducer(self._make_config())
 
     def _init_admin_client(self):
+        auth = {}
+        if self._auth:
+            auth = self._auth.as_client_dict()
         if not self._admin_client:
             self._admin_client = AdminClient({
                 "bootstrap.servers": self._urls,
-                **self._auth.as_client_dict()})
+                **auth})
 
     def _partitioner(self, key, topic):
         try:

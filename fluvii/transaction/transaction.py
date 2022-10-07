@@ -1,8 +1,8 @@
 from confluent_kafka import KafkaException
 import logging
 from copy import deepcopy
-from .general_utils import parse_headers
-from .custom_exceptions import GracefulTransactionFailure, FatalTransactionFailure
+from fluvii.general_utils import parse_headers
+from fluvii.custom_exceptions import GracefulTransactionFailure, FatalTransactionFailure
 from json import dumps, loads
 
 
@@ -100,7 +100,6 @@ class Transaction:
     def _commit(self):
         try:
             self.consumer.commit(self.producer)
-            LOGGER.info('Transaction Committed!')
         except KafkaException as kafka_error:
             handle_kafka_exception(kafka_error)
 

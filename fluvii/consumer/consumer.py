@@ -1,7 +1,7 @@
 from confluent_kafka import DeserializingConsumer, TopicPartition
 from confluent_kafka.schema_registry.avro import AvroDeserializer
-from .custom_exceptions import NoMessageError, ConsumeMessageError, FinishedTransactionBatch
-from .general_utils import parse_headers, get_guid_from_message
+from fluvii.custom_exceptions import NoMessageError, ConsumeMessageError, FinishedTransactionBatch
+from fluvii.general_utils import parse_headers, get_guid_from_message
 from copy import deepcopy
 import logging
 import datetime
@@ -195,10 +195,15 @@ class TransactionalConsumer(Consumer):
 
     def _commit(self, producer, offsets):
         if offsets:
+            LOGGER.debug(f'Offset ends ready for commit: {self._batch_offset_ends}')
             if not producer.active_transaction:
                 producer.begin_transaction()
             producer.send_offsets_to_transaction(offsets, self._consumer.consumer_group_metadata())
+        else:
+            LOGGER.info('No messages were consumed in this batch.')
+
         if producer.active_transaction:
+            LOGGER.info('Comitting transaction!')
             producer.commit_transaction(30)
 
     def _make_config(self):
@@ -253,6 +258,7 @@ class TransactionalConsumer(Consumer):
         try:
             if self._keep_consuming(consume_multiplier=consume_multiplier):
                 return super().consume(timeout=timeout)
+            LOGGER.info('Consumption attempts for this batch are finished.')
             raise FinishedTransactionBatch
         except NoMessageError:
             if self._batch_offset_ends:

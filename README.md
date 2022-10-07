@@ -143,6 +143,9 @@ Please see the **"Important Usage Information"** section for more insight around
 
 ### Initializing/running a bare-bones `FluviiApp`:
 
+Note: This example assumes you have set the few required config settings via environment variables. 
+You can find a manual configuration example further below.
+
 There are two basic components you need to initialize an app at all:
 
 - `app_function`: the logic of your application, of which the first argument (which MUST exist) is assumed to be a transaction object that will be handed to it at runtime. Additional arguments, if needed, can be handed to `app_function_arglist`.
@@ -165,7 +168,7 @@ Altogether, that might look something like this:
 from fluvii import FluviiApp
 from fluvii.transaction import Transaction
 
-useless_schema = {
+a_cool_schema = {
     "name": "CoolSchema",
     "type": "record",
     "fields": [
@@ -176,22 +179,23 @@ useless_schema = {
     ]
 }
 
+init_at_runtime_thing = 'cool value' # can hand off objects you'd like to init separately, like an api session object
+
 
 def my_app_logic(transaction: Transaction, thing_inited_at_runtime):
-    msg = transaction.message # can also do transaction.value(); uses the confluent-kafka method with single messages
+    # All we're gonna do is set our field to a new value...very exciting, right?
+    msg = transaction.message # can also do transaction.value() to skip a step
     cool_message_out = msg.value()
     cool_message_out['cool_field'] = thing_inited_at_runtime #  'cool value'
     transaction.produce(
         cool_message_out, 
         {'topic': 'cool_topic_out', 'key': msg.key(), 'headers': msg.headers()}
     )
-
-init_at_runtime_thing = 'cool value' # can hand off objects you need to init at runtime, like an api session object
     
 fluvii_app = FluviiApp(
     app_function=my_app_logic, 
     consume_topics_list=['test_topic_1', 'test_topic_2'],
-    produce_topic_schema_dict={'cool_topic_out': useless_schema},
+    produce_topic_schema_dict={'cool_topic_out': a_cool_schema},
     app_function_arglist = [init_at_runtime_thing])  # optional! Here to show functionality.
 fluvii_app.run()
 ```
@@ -407,4 +411,3 @@ Also, `FluviiTableApp` will ensure everything gets committed correctly for you j
 Here's a few more examples.
 
 ## Configuration example
-

@@ -2,13 +2,28 @@
 
 _Fluvii_ should be considered in a late alpha/early beta state and probably not _quite_ stable enough for your production environment. 
 
-It's still in a transitional state, but wanted to get what code was available out for those who are attending `Current 2022`! 
+It's still in a transitional state, but wanted to get what code was available out for those who attended `Current 2022` and had interest! 
 
 We are actively refactoring it from our own in-house library while simultaneously improving its organization and abstractions, 
 ultimately making it more open-source/contribution ready! 
 
 It's probably not too far off from getting our seal of approval, so we wanted to get the word out and let people start
 trying it out. We're hoping to add more configuration settings and eliminate a few more bugs first.
+
+On that note...
+
+### Things in the Pipeline
+
+- Unit Tests
+- Better general documentation
+- More configuration options
+- Contribution Guide
+- Actual pypi library
+- Fixing a rebalance bug in the `FluviiTableApp`
+- Cleaning up changelog topic management code in `FluviiTableApp`
+- More examples in README
+
+We are dedicated to having these things by the end of 2022.
 
 # Installation
 

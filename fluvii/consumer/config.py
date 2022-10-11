@@ -8,7 +8,7 @@ class ConsumerConfig(KafkaConfigBase):
     """
     def __init__(self):
         self.auto_offset_reset = environ.get('FLUVII_CONSUMER_AUTO_OFFSET_RESET', 'latest')
-        self.auto_commit_secs = int(environ.get('FLUVII_CONSUMER_AUTO_COMMIT_INTERVAL_SECONDS', '20')) * 1000
+        self.auto_commit_secs = int(environ.get('FLUVII_CONSUMER_AUTO_COMMIT_INTERVAL_SECONDS', '20'))
 
         self.timestamp_offset_mins = int(environ.get('FLUVII_CONSUMER_PROCESS_DELAY_MINUTES', '0'))  # for "retry" logic
         self._timeout_mins = int(environ.get('FLUVII_CONSUMER_TIMEOUT_MINUTES', '4'))

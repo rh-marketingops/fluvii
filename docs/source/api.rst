@@ -1,11 +1,6 @@
 API
 ===
 
-.. autoclass:: gtfo.GtfoApp
-    :members:
-    :inherited-members:
-
-
-.. autoclass:: gtfo.config.GtfoConfig
+.. autoclass:: fluvii.FluviiApp
     :members:
     :inherited-members:

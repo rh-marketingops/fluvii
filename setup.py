@@ -21,7 +21,7 @@ dev_requires = install_requires + [
 packages = setuptools.find_packages()
 
 setuptools.setup(
-    name="gtfo",
+    name="fluvii",
     description="A simpler Kafka streams implementation in Python using confluent-kafka",
     packages=packages,
     install_requires=install_requires,

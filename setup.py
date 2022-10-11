@@ -2,7 +2,7 @@ import setuptools
 
 
 install_requires = [
-    "confluent-kafka[avro]==1.8.2",
+    "confluent-kafka[avro]>=1.9,<2",
     "mmh3",
     "prometheus_client",
     "sqlitedict",

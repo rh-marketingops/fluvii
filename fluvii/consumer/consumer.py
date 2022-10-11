@@ -10,7 +10,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Consumer:
-    def __init__(self, urls, group_id, consume_topics_list, schema_registry=None, auto_subscribe=True, client_auth_config=None, settings_config=None, metrics_manager=None):
+    def __init__(self, urls, group_id, consume_topics_list, schema_registry=None, auto_subscribe=True, client_auth_config=None, settings_config=None, metrics_manager=None, consumer_cls=DeserializingConsumer):
         self._urls = ','.join(urls) if isinstance(urls, list) else urls
         self._auth = client_auth_config
         self._settings = settings_config
@@ -18,6 +18,7 @@ class Consumer:
         self._group_id = group_id
         self._topic_metadata = None
         self._schema_registry = schema_registry
+        self._consumer_cls = consumer_cls
 
         self.message = None
         self.metrics_manager = metrics_manager
@@ -66,7 +67,7 @@ class Consumer:
 
     def _init_consumer(self, auto_subscribe=True):
         LOGGER.info('Initializing Consumer...')
-        self._consumer = DeserializingConsumer(self._make_config())
+        self._consumer = self._consumer_cls(self._make_config())
         LOGGER.info('Consumer Initialized!')
         if auto_subscribe:
             self._consumer.subscribe(topics=self.topics)

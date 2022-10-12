@@ -44,6 +44,6 @@ class FluviiConfig:
         self.hostname = environ.get('FLUVII_HOSTNAME', f'{self.app_name}_{int(datetime.timestamp(datetime.now()))}')
         self.table_folder_path = environ.get('FLUVII_TABLE_FOLDER_PATH', '/tmp')
         self.table_changelog_topic = environ.get('FLUVII_TABLE_CHANGELOG_TOPIC', f'{self.app_name}__changelog')
-        self.table_recovery_multiplier = environ.get('FLUVII_TABLE_RECOVERY_MULTIPLIER')
+        self.table_recovery_multiplier = int(environ.get('FLUVII_TABLE_RECOVERY_MULTIPLIER', '10'))
         self.loglevel = environ.get('FLUVII_LOGLEVEL', 'INFO')
         self.enable_metrics_pushing = True if environ.get('FLUVII_ENABLE_METRICS_PUSHING', 'false').lower() == 'true' else False

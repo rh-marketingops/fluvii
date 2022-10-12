@@ -157,6 +157,9 @@ class TableTransaction(Transaction):
         self._is_not_changelog_message = False  # so we dont produce a message back to the changelog
         self.update_table_entry(loads(self.value()))
 
+    def _recovery_commit(self):
+        self.consumer._init_attrs()
+
     def _table_write(self, recovery_multiplier=1):
         for p, msgs in self._pending_table_writes.items():
             if msgs:

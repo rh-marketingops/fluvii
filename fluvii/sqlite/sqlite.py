@@ -24,6 +24,7 @@ class SqliteFluvii:
         self.db = None
         self.table_name = table_name
         self.db_cache = {}
+        self.offset = None
         self.write_cache = {}
         self._current_read = (None, '')
         if not table_path:
@@ -94,10 +95,10 @@ class SqliteFluvii:
                     self.db[key] = json.dumps(value)
                 else:
                     del self.db[key]
-            self.db['offset'] = str(self.offset)
-            self.db.commit()
-            self.db_cache.update(self.write_cache)
-            self.write_cache = {}
+        self.db['offset'] = str(self.offset)
+        self.db.commit()
+        self.db_cache.update(self.write_cache)
+        self.write_cache = {}
 
     def _confirm_previous_read_in_cache(self):
         """

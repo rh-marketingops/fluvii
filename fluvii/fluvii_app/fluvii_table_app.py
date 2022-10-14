@@ -99,7 +99,7 @@ class FluviiTableApp(FluviiApp):
 
     def _table_recovery_consume_loop(self, checks):
         LOGGER.info(f'Consuming from changelog partitions: {[p.partition for p in self._rebalance_manager.recovery_partitions]}')
-        LOGGER.info(f'Processing up to {self._config.consumer_config.batch_consume_max_count * self._recovery_multiplier} messages for up to {self._config.consumer_config.batch_consume_max_time_secs} seconds!')
+        LOGGER.info(f'Processing up to {self._config.consumer_config.batch_consume_max_count * self._recovery_multiplier} messages for up to {self._config.consumer_config.batch_consume_max_time_seconds} seconds!')
         # NOTE: no transaction commits since its just consuming from changelog and writing to the table, we dont care about the consumer group offset
         try:
             while not self._shutdown:

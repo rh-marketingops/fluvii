@@ -113,7 +113,7 @@ class FluviiApp:
 
     def _app_batch_run_loop(self, **kwargs):
         LOGGER.info(f'Consuming {self._config.consumer_config.batch_consume_max_count} messages'
-                    f' over {self._config.consumer_config.batch_consume_max_time_secs} seconds...')
+                    f' over {self._config.consumer_config.batch_consume_max_time_seconds} seconds...')
         try:
             while not self._shutdown:
                 try:

@@ -51,23 +51,23 @@ class FluviiConfig:
         self._hostname = None
         self._table_changelog_topic = None
 
-        # These properties allow settings that depend on others to dynamically adjust their defaults
-        @property
-        def hostname(self):
-            if self._hostname:
-                return self._hostname
-            return environ.get('FLUVII_HOSTNAME', f'{self.app_name}_{self._time}')
+    # These properties allow settings that depend on others to dynamically adjust their defaults
+    @property
+    def hostname(self):
+        if self._hostname:
+            return self._hostname
+        return environ.get('FLUVII_HOSTNAME', f'{self.app_name}_{self._time}')
 
-        @hostname.setter
-        def hostname(self, value):
-            self._hostname = value
+    @hostname.setter
+    def hostname(self, value):
+        self._hostname = value
 
-        @property
-        def table_changelog_topic(self):
-            if self._table_changelog_topic:
-                return self._table_changelog_topic
-            return environ.get('FLUVII_TABLE_CHANGELOG_TOPIC', f'{self.app_name}__changelog')
+    @property
+    def table_changelog_topic(self):
+        if self._table_changelog_topic:
+            return self._table_changelog_topic
+        return environ.get('FLUVII_TABLE_CHANGELOG_TOPIC', f'{self.app_name}__changelog')
 
-        @table_changelog_topic.setter
-        def table_changelog_topic(self, value):
-            self._table_changelog_topic = value
+    @table_changelog_topic.setter
+    def table_changelog_topic(self, value):
+        self._table_changelog_topic = value

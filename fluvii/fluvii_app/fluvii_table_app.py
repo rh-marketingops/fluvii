@@ -1,4 +1,4 @@
-from fluvii.custom_exceptions import NoMessageError, PartitionsAssigned, FinishedTransactionBatch
+from fluvii.custom_exceptions import NoMessageError, PartitionsAssigned, FinishedTransactionBatch, GracefulTransactionFailure, FatalTransactionFailure
 from fluvii.transaction import TableTransaction
 from .fluvii_app import FluviiApp
 from .rebalance_manager import TableRebalanceManager
@@ -52,6 +52,10 @@ class FluviiTableApp(FluviiApp):
             super()._app_batch_run_loop(**kwargs)
         except PartitionsAssigned:
             self._handle_rebalance()
+        except GracefulTransactionFailure:
+            self._finalize_transaction_batch()
+        except FatalTransactionFailure:
+            self.transaction.abort_transaction()
 
     def _app_shutdown(self):
         super()._app_shutdown()
@@ -105,15 +109,18 @@ class FluviiTableApp(FluviiApp):
         self._rebalance_manager.update_recovery_status()
 
     def _handle_rebalance(self):
-        LOGGER.debug('Rebalance management initiated...')
-        self._rebalance_manager.set_table_and_recovery_state()
-        if self._rebalance_manager.recovery_partitions:
-            LOGGER.info('BEGINNING TABLE RECOVERY PROCEDURE')
-            self._table_recovery_consume_loop()
-            LOGGER.info('TABLE RECOVERY COMPLETE!')
-        else:
-            LOGGER.info('NO TABLE RECOVERY REQUIRED!')
-        self._rebalance_manager.finalize_rebalance()
+        try:
+            LOGGER.debug('Rebalance management initiated...')
+            self._rebalance_manager.set_table_and_recovery_state()
+            if self._rebalance_manager.recovery_partitions:
+                LOGGER.info('BEGINNING TABLE RECOVERY PROCEDURE')
+                self._table_recovery_consume_loop()
+                LOGGER.info('TABLE RECOVERY COMPLETE!')
+            else:
+                LOGGER.info('NO TABLE RECOVERY REQUIRED!')
+            self._rebalance_manager.finalize_rebalance()
+        except PartitionsAssigned:
+            self._handle_rebalance()
 
     # ----------------------- Method Extensions -----------------------
     def check_table_commits(self, recovery_multiplier=1):

@@ -5,7 +5,7 @@ import time
 
 class SaslPlainClientConfig(KafkaConfigBase):
     def __init__(self, username, password):
-        self.security_protocol = 'SASL_SSL'
+        self.security_protocol = 'sasl_ssl'
         self.mechanism = 'PLAIN'
         self.username = username
         self.password = password

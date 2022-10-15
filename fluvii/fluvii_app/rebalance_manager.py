@@ -216,7 +216,7 @@ class TableRebalanceManager:
         partitions = [p.partition for p in partition_obj_list]
         self.consumer.incremental_unassign([p._partition for p in self._all_partitions if p.partition in partitions])
         self._primary_partitions = [obj for obj in self._primary_partitions if obj.partition not in partitions]
-        self._changelog_partitions = [obj for obj in self._primary_partitions if obj.partition not in partitions]
+        self._changelog_partitions = [obj for obj in self._changelog_partitions if obj.partition not in partitions]
         self._close_tables(partitions=partitions)
 
     def set_table_and_recovery_state(self):

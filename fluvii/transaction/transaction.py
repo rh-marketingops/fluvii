@@ -11,17 +11,20 @@ LOGGER = logging.getLogger(__name__)
 
 def handle_kafka_exception(kafka_error):
     LOGGER.error(kafka_error)
-    if kafka_error.args[0].code == 'ILLEGAL GENERATION':
-        LOGGER.info('The consumer group generation id is invalid (likely due to a rebalance call), aborting transaction')
-        raise FatalTransactionFailure
+    LOGGER.error(kafka_error.args[0].code)
+    # if kafka_error.args[0].code == 'ILLEGAL GENERATION':
+    #     LOGGER.info('The consumer group generation id is invalid (likely due to a rebalance call), aborting transaction')
+    #     raise FatalTransactionFailure
     retriable = kafka_error.args[0].retriable()
     abort = kafka_error.args[0].txn_requires_abort()
     # TODO: take advantage of retriable
     LOGGER.info(f'KafkaException: is retriable? - {retriable}, should abort? - {abort}')
-    if retriable or abort:
+    if retriable:
         raise GracefulTransactionFailure
-    else:
+    elif abort:
         raise FatalTransactionFailure
+    else:
+        pass
 
 
 class Transaction:
@@ -30,7 +33,7 @@ class Transaction:
         self.consumer = consumer
         self.message = message
         self._allow_auto_consume = auto_consume
-        self._refresh_after_commit = refresh_after_commit
+        self._refresh_after_commit = refresh_after_commit  # allows you to re-use the object, as needed
         self._init_attrs()
 
         # this optional attribute should never be referenced/used by class methods here to keep transactions independent of the app

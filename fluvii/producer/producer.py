@@ -122,7 +122,7 @@ class Producer:
                 topic = topics[0]
             else:
                 raise Exception('Topic must be defined if managing more than 1 topic')
-        if not partition:
+        if partition is None:
             partition = self._partitioner(key, topic)
         self._producer._value_serializer = self.topic_schemas[topic]
         if '__changelog' not in topic:  # TODO: add a separate logger for changelog stuff, but for now it just clutters things

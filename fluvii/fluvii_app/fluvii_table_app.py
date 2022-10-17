@@ -1,4 +1,4 @@
-from fluvii.custom_exceptions import NoMessageError, PartitionsAssigned, FinishedTransactionBatch, GracefulTransactionFailure, FatalTransactionFailure
+from fluvii.custom_exceptions import NoMessageError, PartitionsAssigned, FinishedTransactionBatch, GracefulTransactionFailure, FatalTransactionFailure, EndCurrentLoop
 from fluvii.transaction import TableTransaction
 from .fluvii_app import FluviiApp
 from .rebalance_manager import TableRebalanceManager
@@ -39,8 +39,8 @@ class FluviiTableApp(FluviiApp):
     def _init_transaction_handler(self, **kwargs):
         super()._init_transaction_handler(fluvii_changelog_topic=self.changelog_topic, fluvii_tables=self.tables, **kwargs)
 
-    def _finalize_transaction_batch(self):
-        super()._finalize_transaction_batch()
+    def _finalize_app_batch(self):
+        super()._finalize_app_batch()
         self.check_table_commits()
 
     def _no_message_callback(self):
@@ -52,10 +52,6 @@ class FluviiTableApp(FluviiApp):
             super()._app_batch_run_loop(**kwargs)
         except PartitionsAssigned:
             self._handle_rebalance()
-        except GracefulTransactionFailure:
-            self._finalize_transaction_batch()
-        except FatalTransactionFailure:
-            self.transaction.abort_transaction()
 
     def _app_shutdown(self):
         super()._app_shutdown()
@@ -87,26 +83,41 @@ class FluviiTableApp(FluviiApp):
         self.transaction.abort_transaction()
         self._rebalance_manager.unassign_partitions(drop_partition_objs)
 
-    def _table_recovery_consume_loop(self, checks=2):
-        while checks and self._rebalance_manager.recovery_partitions:
-            LOGGER.info(f'Consuming from changelog partitions: {[p.partition for p in self._rebalance_manager.recovery_partitions]}')
-            LOGGER.info(f'Processing up to {self._config.consumer_config.batch_consume_max_count * self._recovery_multiplier} messages for up to {self._config.consumer_config.batch_consume_max_time_secs} seconds!')
-            # NOTE: no transaction commits since its just consuming from changelog and writing to the table, we dont care about the consumer group offset
-            try:
-                self._init_transaction_handler()
-                while checks:
-                    self.transaction.consume(consume_multiplier=self._recovery_multiplier)
-                    self.transaction._update_table_entry_from_changelog()
-            except FinishedTransactionBatch:
-                LOGGER.info(f'Consumed {self._consumer._consume_message_count} changelog messages')
-                self.transaction._table_write(recovery_multiplier=self._recovery_multiplier)  # relay transaction's cached writes to the table's write cache
-                self.transaction._recovery_commit()
-                self._rebalance_manager.update_recovery_status()
-            except NoMessageError:
-                checks -= 1
-                LOGGER.debug(f'No further changelog messages, checks remaining: {checks}')
-        self.commit_tables()
+    def _handle_recovery_message(self):
+        self.transaction.consume(consume_multiplier=self._recovery_multiplier)
+        self.transaction._update_table_entry_from_changelog()
+
+    def _finalize_recovery_batch(self):
+        LOGGER.info(f'Consumed {self._consumer._consume_message_count} changelog messages')
+        self.transaction._table_write(recovery_multiplier=self._recovery_multiplier)  # relay transaction's cached writes to the table's write cache
+        self.transaction._recovery_commit()
         self._rebalance_manager.update_recovery_status()
+
+    def _table_recovery_consume_loop(self, checks):
+        LOGGER.info(f'Consuming from changelog partitions: {[p.partition for p in self._rebalance_manager.recovery_partitions]}')
+        LOGGER.info(f'Processing up to {self._config.consumer_config.batch_consume_max_count * self._recovery_multiplier} messages for up to {self._config.consumer_config.batch_consume_max_time_secs} seconds!')
+        # NOTE: no transaction commits since its just consuming from changelog and writing to the table, we dont care about the consumer group offset
+        try:
+            while not self._shutdown:
+                try:
+                    self._handle_recovery_message()
+                except FinishedTransactionBatch:
+                    self._finalize_recovery_batch()
+                    raise EndCurrentLoop
+        except EndCurrentLoop:
+            pass
+        except NoMessageError:
+            checks -= 1
+            LOGGER.debug(f'No further changelog messages, checks remaining: {checks}')
+            self.commit_tables()
+            self._rebalance_manager.update_recovery_status()
+        except GracefulTransactionFailure:
+            self._finalize_app_batch()
+            self._table_recovery_consume_loop(checks)
+        except FatalTransactionFailure:
+            self.transaction.abort_transaction()
+            self._table_recovery_consume_loop(checks)
+        return checks
 
     def _handle_rebalance(self):
         try:
@@ -114,7 +125,11 @@ class FluviiTableApp(FluviiApp):
             self._rebalance_manager.set_table_and_recovery_state()
             if self._rebalance_manager.recovery_partitions:
                 LOGGER.info('BEGINNING TABLE RECOVERY PROCEDURE')
-                self._table_recovery_consume_loop()
+                checks = 2
+                while checks and self._rebalance_manager.recovery_partitions:
+                    self._init_transaction_handler()
+                    checks = self._table_recovery_consume_loop(checks)
+                self.commit_tables()
                 LOGGER.info('TABLE RECOVERY COMPLETE!')
             else:
                 LOGGER.info('NO TABLE RECOVERY REQUIRED!')

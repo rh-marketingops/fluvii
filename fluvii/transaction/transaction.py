@@ -2,7 +2,7 @@ from confluent_kafka import KafkaException
 import logging
 from copy import deepcopy
 from fluvii.general_utils import parse_headers
-from fluvii.custom_exceptions import GracefulTransactionFailure, FatalTransactionFailure
+from fluvii.custom_exceptions import GracefulTransactionFailure, FatalTransactionFailure, FailedAbort
 from json import dumps, loads
 
 
@@ -81,19 +81,17 @@ class Transaction:
         try:
             LOGGER.info('Aborting transaction.')
             self.producer.abort_transaction(10)
-        except KafkaException as kafka_error:
-            LOGGER.info(f"Failed to abort transaction: {kafka_error}")
-            raise
+        except KafkaException as e:
+            LOGGER.info(f"Failed to abort transaction: {e}")
+            raise FailedAbort
 
     def abort_transaction(self):
         LOGGER.debug('Aborting any open transactions, if needed.')
-        reset_producer = self.producer.active_transaction
-        if reset_producer:
-            self._abort_transaction()
         if self.consumer.pending_commits:
             self.consumer.rollback_consumption()
+        if self.producer.active_transaction:
+            self._abort_transaction()
         self._init_attrs()
-        return reset_producer
 
     def produce(self, value, producer_kwargs=None):
         if not producer_kwargs:

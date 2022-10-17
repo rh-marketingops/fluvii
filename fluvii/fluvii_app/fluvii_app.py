@@ -1,5 +1,5 @@
 from fluvii.general_utils import log_and_raise_error
-from fluvii.custom_exceptions import NoMessageError, SignalRaise, GracefulTransactionFailure, FatalTransactionFailure, PartitionsAssigned, FinishedTransactionBatch
+from fluvii.custom_exceptions import NoMessageError, SignalRaise, GracefulTransactionFailure, FatalTransactionFailure, FinishedTransactionBatch, FailedAbort, EndCurrentLoop
 from fluvii.consumer import TransactionalConsumer
 from fluvii.producer import TransactionalProducer
 from fluvii.transaction import Transaction
@@ -84,13 +84,12 @@ class FluviiApp:
                 settings_config=self._config.consumer_config,
             )
 
-    def _reset_producer(self):
-        self._set_producer(force_init=True)
-        self.transaction.producer = self._producer
-
-    def _abort_transaction(self):
-        if self.transaction.abort_transaction():
-            self._reset_producer()
+    def abort_transaction(self):
+        try:
+            self.transaction.abort_transaction()
+        except FailedAbort:
+            self._set_producer(force_init=True)
+            # self._init_transaction_handler()
 
     def _init_transaction_handler(self, **kwargs):
         LOGGER.debug('initing a transaction handler...')
@@ -105,27 +104,30 @@ class FluviiApp:
         self._producer.poll(0)
         LOGGER.debug('No messages!')
 
-    def _finalize_transaction_batch(self):
+    def _finalize_app_batch(self):
         LOGGER.debug('Finalizing transaction batch, if necessary...')
         self.commit()
 
     def _app_batch_run_loop(self, **kwargs):
-        self._init_transaction_handler()
         LOGGER.info(f'Consuming {self._config.consumer_config.batch_consume_max_count} messages'
                     f' over {self._config.consumer_config.batch_consume_max_time_secs} seconds...')
         try:
             while not self._shutdown:
-                self._handle_message(**kwargs)
-        except FinishedTransactionBatch:
-            self._finalize_transaction_batch()
+                try:
+                    self._handle_message(**kwargs)
+                except FinishedTransactionBatch:
+                    self._finalize_app_batch()
+                    raise EndCurrentLoop
+        except EndCurrentLoop:
+            pass
         except NoMessageError:
             self._no_message_callback()
         except GracefulTransactionFailure:
-            LOGGER.info("Graceful transaction failure; retrying message with a new transaction...")
-            self._abort_transaction()
+            LOGGER.info("Graceful transaction failure; retrying commit...")
+            self._app_batch_run_loop(**kwargs)
         except FatalTransactionFailure:
-            LOGGER.info("Fatal transaction failure; recreating the producer and retrying message...")
-            self._abort_transaction()
+            LOGGER.info("Fatal transaction failure; aborting the transaction and resetting consumer state...")
+            self.abort_transaction()
 
     def _app_shutdown(self):
         LOGGER.info('App is shutting down...')
@@ -138,6 +140,7 @@ class FluviiApp:
         LOGGER.info('Performing graceful teardown of producer and/or consumer...')
         if self._consumer:
             LOGGER.debug("Shutting down consumer; no further commits can be queued or finalized.")
+            # TODO: make sure consumer unsubscribes.
             self._consumer.close()
         if self._producer:
             LOGGER.debug("Sending/confirming the leftover messages in producer message queue")
@@ -159,6 +162,7 @@ class FluviiApp:
         LOGGER.info('RUN initialized!')
         try:
             while not self._shutdown:
+                self._init_transaction_handler()
                 self._app_batch_run_loop(**kwargs)
         except SignalRaise:
             LOGGER.info('Shutdown requested via SignalRaise!')
@@ -168,18 +172,3 @@ class FluviiApp:
                 log_and_raise_error(self.metrics_manager, e)
         finally:
             self._app_shutdown()
-
-
-# class FluviiBatchManagerApp(FluviiApp):
-#     def _app_batch_run(self, **kwargs):
-#         if not self.transaction._committed:
-#             try:
-#                 self.consume(**kwargs)
-#             except FinishedTransactionBatch as e:
-#                 LOGGER.debug(e)
-#             except NoMessageError:
-#                 self._producer.poll(0)
-#                 if not (any(self.transaction._pending_table_offset_increase.values())):
-#                     raise
-#         self._app_function(self.transaction, *self._app_function_arglist)
-#         self.commit()

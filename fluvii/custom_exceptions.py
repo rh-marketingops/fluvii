@@ -122,6 +122,14 @@ class ProduceHeadersException(Exception):
     pass
 
 
+class FailedAbort(Exception):
+    pass
+
+
+class EndCurrentLoop(Exception):
+    pass
+
+
 class ProducerTimeoutFailure(Exception):
     """ Exception signifying a producer failing to communicate with the broker(s). """
     def __init__(self, *args):

@@ -70,7 +70,7 @@ class FluviiTableApp(FluviiApp):
             """
         if not self._shutdown:
             LOGGER.debug('Rebalance Triggered - Assigment')
-            self.transaction.abort_transaction()
+            self.abort_transaction()
             self._rebalance_manager.assign_partitions(add_partition_objs)
             raise PartitionsAssigned
 
@@ -80,7 +80,8 @@ class FluviiTableApp(FluviiApp):
         NOTE: _partition_assignment will always be called (even when no new assignments are required) after _partition_unassignment.
         """
         LOGGER.info('Rebalance Triggered - Unassigment')
-        self.transaction.abort_transaction()
+        if not self._shutdown:
+            self.abort_transaction()
         self._rebalance_manager.unassign_partitions(drop_partition_objs)
 
     def _handle_recovery_message(self):
@@ -115,7 +116,7 @@ class FluviiTableApp(FluviiApp):
             self._finalize_app_batch()
             self._table_recovery_consume_loop(checks)
         except FatalTransactionFailure:
-            self.transaction.abort_transaction()
+            self.abort_transaction()
             self._table_recovery_consume_loop(checks)
         return checks
 

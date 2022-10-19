@@ -241,7 +241,6 @@ class TransactionalConsumer(Consumer):
                 if partition in assignments.get(topic, []):
                     LOGGER.info(f"Reversing topic {topic} partition {partition} back to offset {offset}")
                     self._consumer.seek(TopicPartition(topic=topic, partition=partition, offset=offset))
-                    LOGGER.info(f"Consumer set topic {topic} partition {partition} to offset {self._consumer.position([TopicPartition(topic=topic, partition=partition)])[0].offset}")
         self._init_attrs()
 
     def commit(self, producer):

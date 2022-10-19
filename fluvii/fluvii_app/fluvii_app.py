@@ -89,7 +89,6 @@ class FluviiApp:
             self.transaction.abort_transaction()
         except FailedAbort:
             self._set_producer(force_init=True)
-            # self._init_transaction_handler()
 
     def _init_transaction_handler(self, **kwargs):
         LOGGER.debug('initing a transaction handler...')
@@ -132,7 +131,10 @@ class FluviiApp:
     def _app_shutdown(self):
         LOGGER.info('App is shutting down...')
         self._shutdown = True
-        self.transaction.abort_transaction()
+        try:
+            self.abort_transaction()
+        except:
+            pass
         self.kafka_cleanup()
 
     def kafka_cleanup(self):
@@ -142,9 +144,6 @@ class FluviiApp:
             LOGGER.debug("Shutting down consumer; no further commits can be queued or finalized.")
             # TODO: make sure consumer unsubscribes.
             self._consumer.close()
-        if self._producer:
-            LOGGER.debug("Sending/confirming the leftover messages in producer message queue")
-            self._producer.close()
 
     def consume(self, **kwargs):
         LOGGER.debug('Calling consume...')

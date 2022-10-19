@@ -20,7 +20,7 @@ class ConsumerConfig(KafkaConfigBase):
         self.message_queue_max_size_mb = int(environ.get('FLUVII_CONSUMER_MESSAGE_QUEUE_MAX_MB', '20'))  # as kilobytes
 
         # used in consumer.poll(), not actually passed as a config
-        self.poll_timeout_secs = int(environ.get('FLUVII_CONSUMER_POLL_TIMEOUT_SECONDS', '8'))
+        self.poll_timeout_secs = int(environ.get('FLUVII_CONSUMER_POLL_TIMEOUT_SECONDS', '5'))
 
         self.batch_consume_max_count = int(environ.get('FLUVII_CONSUMER_BATCH_CONSUME_MAX_COUNT', '100'))
         self.batch_consume_max_time_secs = int(environ.get('NU_CONSUMER_DEFAULT_BATCH_CONSUME_MAX_TIME_SECONDS', '10'))

@@ -65,7 +65,7 @@ class Consumer:
         return settings
 
     def _init_consumer(self, auto_subscribe=True):
-        LOGGER.debug('Initializing Consumer...')
+        LOGGER.info('Initializing Consumer...')
         self._consumer = DeserializingConsumer(self._make_config())
         LOGGER.info('Consumer Initialized!')
         if auto_subscribe:

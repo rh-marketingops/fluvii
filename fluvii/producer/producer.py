@@ -1,7 +1,6 @@
 from confluent_kafka import SerializingProducer
-from confluent_kafka.admin import AdminClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
-from fluvii.general_utils import parse_headers
+from fluvii.general_utils import parse_headers, Admin
 from fluvii.custom_exceptions import ProducerTimeoutFailure
 import json
 import mmh3
@@ -19,13 +18,13 @@ class Producer:
         self._producer = None
         self._topic_partition_metadata = {}
         self._schema_registry = schema_registry
-        self._admin_client = None
+        self._admin = None
 
         self.topic_schemas = topic_schema_dict
         self.metrics_manager = metrics_manager
 
         self._init_producer()
-        self._init_admin_client()
+        self._init_admin()
         for topic, schema in self.topic_schemas.items():
             self.add_topic(topic, schema)
 
@@ -68,16 +67,12 @@ class Producer:
         return settings
 
     def _init_producer(self):
+        LOGGER.info('Initializing producer...')
         self._producer = SerializingProducer(self._make_config())
+        LOGGER.info('Producer initialized successfully!')
 
-    def _init_admin_client(self):
-        auth = {}
-        if self._auth:
-            auth = self._auth.as_client_dict()
-        if not self._admin_client:
-            self._admin_client = AdminClient({
-                "bootstrap.servers": self._urls,
-                **auth})
+    def _init_admin(self):
+        self._admin = Admin(self._urls, self._auth)
 
     def _partitioner(self, key, topic):
         try:
@@ -91,16 +86,17 @@ class Producer:
         return str(uuid.uuid1())
 
     def _add_serializer(self, topic, schema):
+        LOGGER.info(f'Adding serializer for producer topic {topic}')
         self.topic_schemas.update({topic: AvroSerializer(self._schema_registry, json.dumps(schema))})
 
     def _get_topic_metadata(self, topic):
-        # TODO: retrieve the metadata (mostly just partitions) for said topic
-        partitions = self._admin_client.list_topics().topics[topic].partitions
+        partitions = self._admin.list_topics().topics[topic].partitions
         LOGGER.debug(partitions)
         self._topic_partition_metadata.update({topic: len(partitions)})
 
     def add_topic(self, topic, schema):
         """For adding topics at runtime"""
+        LOGGER.info(f'Adding schema for topic {topic}')
         self._get_topic_metadata(topic)
         self._add_serializer(topic, schema)
 

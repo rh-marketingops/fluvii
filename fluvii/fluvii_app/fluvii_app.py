@@ -20,7 +20,7 @@ class FluviiApp:
         if isinstance(consume_topics_list, str):
             consume_topics_list = consume_topics_list.split(',')
         if not produce_topic_schema_dict:  # Should only be the case if you dynamically add topics at runtime...otherwise should just use the plain Consumer
-            produce_topic_schema_dict = {topic: None for topic in consume_topics_list}
+            produce_topic_schema_dict = {}
 
         self._shutdown = False
         self._config = fluvii_config
@@ -38,13 +38,16 @@ class FluviiApp:
 
         self._set_config()
         self._set_metrics_manager()
-        self._set_schema_registry()
-        self._set_producer()
-        self._set_consumer()
 
     def _set_config(self):
         if not self._config:
             self._config = FluviiConfig()
+
+    def _init_clients(self):
+        LOGGER.info('Initializing Kafka clients...')
+        self._set_schema_registry()
+        self._set_producer()
+        self._set_consumer()
 
     def _set_metrics_manager(self):
         if not self.metrics_manager:
@@ -160,6 +163,7 @@ class FluviiApp:
         """
         LOGGER.info('RUN initialized!')
         try:
+            self._init_clients()
             while not self._shutdown:
                 self._init_transaction_handler()
                 self._app_batch_run_loop(**kwargs)

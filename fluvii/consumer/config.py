@@ -13,7 +13,7 @@ class ConsumerConfig(KafkaConfigBase):
         self.timestamp_offset_mins = int(environ.get('FLUVII_CONSUMER_PROCESS_DELAY_MINUTES', '0'))  # for "retry" logic
         self._timeout_mins = int(environ.get('FLUVII_CONSUMER_TIMEOUT_MINUTES', '4'))
         self.timeout_mins = self._timeout_mins + self.timestamp_offset_mins
-        self.heartbeat_timeout_ms = max(60, (self.timeout_mins // 60) // 2) * 1000
+        self.heartbeat_timeout_ms = max(30, (self.timeout_mins * 60) // 2) * 1000
 
         self.message_max_size_mb = int(environ.get('FLUVII_CONSUMER_MESSAGE_BATCH_MAX_MB', '2'))
         self.message_batch_max_size_mb = int(environ.get('FLUVII_CONSUMER_MESSAGE_TOTAL_MAX_MB', '5'))

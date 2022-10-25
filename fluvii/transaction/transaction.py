@@ -93,9 +93,8 @@ class Transaction:
             self._abort_transaction()
         self._init_attrs()
 
-    def produce(self, value, producer_kwargs=None):
-        if not producer_kwargs:
-            producer_kwargs = {}
+    def produce(self, producer_kwargs):
+        value = producer_kwargs.pop('value', producer_kwargs)
         self.producer.produce(value, message_passthrough=self.message, **producer_kwargs)
 
     def _commit(self):
@@ -149,10 +148,7 @@ class TableTransaction(Transaction):
     def _update_changelog(self):
         if self._is_not_changelog_message and (pending_write := self._pending_table_writes.get(self.partition(), {}).get(self.key())):
             LOGGER.debug(f'Updating changelog topic for {self.key()}')
-            self.produce(
-                dumps(pending_write),
-                dict(topic=self.app_changelog_topic, key=self.key(), partition=self.partition())
-            )
+            self.produce(dict(value=dumps(pending_write), topic=self.app_changelog_topic, key=self.key(), partition=self.partition()))
 
     def _update_table_entry_from_changelog(self):
         self._is_not_changelog_message = False  # so we dont produce a message back to the changelog

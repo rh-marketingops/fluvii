@@ -4,6 +4,7 @@ from fluvii.consumer import TransactionalConsumer
 from fluvii.producer import TransactionalProducer
 from fluvii.transaction import Transaction
 from fluvii.schema_registry import SchemaRegistry
+from fluvii.metrics import MetricsManager
 from .config import FluviiConfig
 import logging
 
@@ -12,8 +13,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class FluviiApp:
-    """ The main class to use for most GTFO apps. See README for initialization/usage details. """
-    def __init__(self, app_function, consume_topics_list, fluvii_config=None, produce_topic_schema_dict=None, transaction_type=Transaction,
+    def __init__(self, app_function, consume_topics_list, fluvii_config=None, produce_topic_schema_dict=None, transaction_cls=Transaction,
                  app_function_arglist=None, metrics_manager=None):
         if not app_function_arglist:
             app_function_arglist = []
@@ -24,7 +24,7 @@ class FluviiApp:
 
         self._shutdown = False
         self._config = fluvii_config
-        self._transaction_type = transaction_type
+        self._transaction_cls = transaction_cls
         self._app_function = app_function
         self._app_function_arglist = app_function_arglist
         self._produce_topic_schema_dict = produce_topic_schema_dict
@@ -37,7 +37,6 @@ class FluviiApp:
         self.transaction = None
 
         self._set_config()
-        self._set_metrics_manager()
 
     def _set_config(self):
         if not self._config:
@@ -49,9 +48,11 @@ class FluviiApp:
         self._set_producer()
         self._set_consumer()
 
-    def _set_metrics_manager(self):
+    def _init_metrics_manager(self):
+        LOGGER.info("Initializing the MetricsManager...")
         if not self.metrics_manager:
-            pass  # TODO: add metrics manager back
+            self.metrics_manager = MetricsManager(
+                metrics_config=self._config.metrics_manager_config, pusher_config=self._config.metrics_pusher_config)
 
     def _set_schema_registry(self):
         LOGGER.debug('Setting up Schema Registry...')
@@ -95,7 +96,7 @@ class FluviiApp:
 
     def _init_transaction_handler(self, **kwargs):
         LOGGER.debug('initing a transaction handler...')
-        self.transaction = self._transaction_type(self._producer, self._consumer, fluvii_app_instance=self, auto_consume=False, **kwargs)
+        self.transaction = self._transaction_cls(self._producer, self._consumer, fluvii_app_instance=self, auto_consume=False, **kwargs)
         return self.transaction
 
     def _handle_message(self, **kwargs):
@@ -140,30 +141,12 @@ class FluviiApp:
             pass
         self.kafka_cleanup()
 
-    def kafka_cleanup(self):
-        """ Public method in the rare cases where you need to do some cleanup on the consumer object manually. """
-        LOGGER.info('Performing graceful teardown of producer and/or consumer...')
-        if self._consumer:
-            LOGGER.debug("Shutting down consumer; no further commits can be queued or finalized.")
-            # TODO: make sure consumer unsubscribes.
-            self._consumer.close()
+    def _runtime_init(self):
+        self._init_metrics_manager()
+        self._init_clients()
 
-    def consume(self, **kwargs):
-        LOGGER.debug('Calling consume...')
-        self.transaction.consume(**kwargs)
-
-    def commit(self):
-        LOGGER.debug('Calling commit...')
-        self.transaction.commit()
-
-    def run(self, **kwargs):
-        """
-        # as_loop is really only for rare apps that don't follow the typical consume-looping behavior
-        (ex: async apps) and don't seem to raise out of the True loop as expected.
-        """
-        LOGGER.info('RUN initialized!')
+    def _run(self, **kwargs):
         try:
-            self._init_clients()
             while not self._shutdown:
                 self._init_transaction_handler()
                 self._app_batch_run_loop(**kwargs)
@@ -175,3 +158,25 @@ class FluviiApp:
                 log_and_raise_error(self.metrics_manager, e)
         finally:
             self._app_shutdown()
+
+    def kafka_cleanup(self):
+        """ Public method in the rare cases where you need to do some cleanup on the consumer object manually. """
+        LOGGER.info('Performing graceful teardown of producer and/or consumer...')
+        if self._consumer:
+            LOGGER.debug("Shutting down consumer; no further commits can be queued or finalized.")
+            # TODO: make sure consumer unsubscribes on close.
+            self._consumer.close()
+
+    def consume(self, **kwargs):
+        LOGGER.debug('Calling consume...')
+        self.transaction.consume(**kwargs)
+
+    def commit(self):
+        LOGGER.debug('Calling commit...')
+        self.transaction.commit()
+
+    def run(self, **kwargs):
+        LOGGER.info('RUN initialized!')
+        self._runtime_init()
+        self._run(**kwargs)
+        # TODO: consider just returning self._run here to allow easy way to return things?

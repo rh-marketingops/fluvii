@@ -10,20 +10,19 @@ LOGGER = logging.getLogger(__name__)
 
 
 class FluviiTableApp(FluviiApp):
-    def __init__(self, app_function, consume_topic, fluvii_config=None, produce_topic_schema_dict=None, transaction_type=TableTransaction,
+    def __init__(self, app_function, consume_topic, fluvii_config=None, produce_topic_schema_dict=None, transaction_cls=TableTransaction,
                  app_function_arglist=None, metrics_manager=None, table_changelog_topic=None, table_recovery_multiplier=None):
 
         super().__init__(
             app_function, consume_topic, fluvii_config=fluvii_config, produce_topic_schema_dict=produce_topic_schema_dict,
-            transaction_type=transaction_type, app_function_arglist=app_function_arglist, metrics_manager=metrics_manager)
+            transaction_cls=transaction_cls, app_function_arglist=app_function_arglist, metrics_manager=metrics_manager)
 
         if not table_changelog_topic:
             table_changelog_topic = self._config.table_changelog_topic
         self.topic = consume_topic
         self.changelog_topic = table_changelog_topic
-        self._producer.add_topic(self.changelog_topic, {"type": "string"})
         self.tables = {}
-        self._rebalance_manager = TableRebalanceManager(self._consumer, self.changelog_topic, self.tables, self._config)
+        self._rebalance_manager = None
 
         # # Table recovery attributes
         if not table_recovery_multiplier:
@@ -52,6 +51,11 @@ class FluviiTableApp(FluviiApp):
             super()._app_batch_run_loop(**kwargs)
         except PartitionsAssigned:
             self._handle_rebalance()
+
+    def _runtime_init(self):
+        super()._runtime_init()
+        self._producer.add_topic(self.changelog_topic, {"type": "string"})
+        self._rebalance_manager = TableRebalanceManager(self._consumer, self.changelog_topic, self.tables, self._config)
 
     def _app_shutdown(self):
         super()._app_shutdown()

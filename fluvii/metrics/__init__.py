@@ -1,3 +1,2 @@
-from .metrics_pusher import MetricsPusher
-from .metrics_manager import MetricsManager
-from .metrics_pushing_thread import start_pushing_metrics
+from .pusher import MetricsPusher, MetricsPusherConfig
+from .manager import MetricsManager, MetricsManagerConfig

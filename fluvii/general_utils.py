@@ -1,4 +1,28 @@
 from time import sleep
+from confluent_kafka.admin import AdminClient
+
+
+class Admin:
+    def __init__(self, urls, auth=None):
+        if not auth:
+            auth = {}
+        self._auth = auth
+        self._urls = urls
+        self._admin_client = None
+        self._init_admin_client()
+
+    def __getattr__(self, attr):
+        """Note: this includes methods as well!"""
+        try:
+            return self.__getattribute__(attr)
+        except AttributeError:
+            return self._admin_client.__getattribute__(attr)
+
+    def _init_admin_client(self):
+        auth = self._auth.as_client_dict() if self._auth else self._auth
+        self._admin_client = AdminClient({
+            "bootstrap.servers": self._urls,
+            **auth})
 
 
 def parse_headers(msg_header):

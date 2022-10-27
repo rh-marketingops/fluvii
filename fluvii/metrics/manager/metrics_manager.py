@@ -1,14 +1,15 @@
 """
 Container for standardized application monitoring gauges
 """
-from prometheus_client import Gauge
-from fluvii.metrics.config import MetricsConfig
+from prometheus_client import Gauge, CollectorRegistry
+from .config import MetricsManagerConfig
+from fluvii.metrics.pusher import MetricsPusher, MetricsPusherConfig
 
 
 class Metric:
     def __init__(self, metric_name, registry, metrics_config=None, host=None, app=None, description='', additional_labels=None):
         if not metrics_config:
-            metrics_config = MetricsConfig()
+            metrics_config = MetricsManagerConfig()
 
         if not app:
             app = metrics_config.app_name
@@ -43,17 +44,12 @@ class MetricsManager:
     Creates and manages Metric instances and pushes their metrics
     """
 
-    def __init__(self, metrics_config=None):
+    def __init__(self, metrics_config=MetricsManagerConfig(), registry=CollectorRegistry(), pusher_cls=MetricsPusher, pusher_config=MetricsPusherConfig()):
         """
         Initializes monitor and Metric classes
         """
-        if not metrics_config:
-            metrics_config = MetricsConfig()
         self._config = metrics_config
-
-        self.metrics_pusher = self._config.pusher
-        self.registry = self._config.registry
-
+        self.registry = registry
         self._metrics = {}
 
         self.new_metric('messages_consumed', description='Messages consumed since application start', additional_labels=['topic']),
@@ -61,6 +57,8 @@ class MetricsManager:
         self.new_metric('message_errors', description='Exceptions caught when processing messages', additional_labels=['exception']),
         self.new_metric('external_requests', description='Network calls to external services', additional_labels=['request_to', 'request_endpoint', 'request_type', 'is_bulk', 'status_code']),
         self.new_metric('seconds_behind', description='Elapsed time since the consumed message was originally produced')
+
+        self.pusher = pusher_cls(self.registry, pusher_config)
 
     def __getattr__(self, name):
         try:
@@ -80,7 +78,3 @@ class MetricsManager:
 
     def set_metric(self, metric_name, number, label_dict=None):
         self._metrics[metric_name].set(number, label_dict=label_dict)
-
-    def push_metrics(self):
-        self.metrics_pusher.set_metrics_pod_ips()
-        self.metrics_pusher.push_metrics(self.registry)

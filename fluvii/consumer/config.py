@@ -13,14 +13,14 @@ class ConsumerConfig(KafkaConfigBase):
         self.timestamp_offset_mins = int(environ.get('FLUVII_CONSUMER_PROCESS_DELAY_MINUTES', '0'))  # for "retry" logic
         self._timeout_mins = int(environ.get('FLUVII_CONSUMER_TIMEOUT_MINUTES', '4'))
         self.timeout_mins = self._timeout_mins + self.timestamp_offset_mins
-        self.heartbeat_timeout_ms = max(60, (self.timeout_mins // 60) // 2) * 1000
+        self.heartbeat_timeout_ms = max(30, (self.timeout_mins * 60) // 2) * 1000
 
         self.message_max_size_mb = int(environ.get('FLUVII_CONSUMER_MESSAGE_BATCH_MAX_MB', '2'))
         self.message_batch_max_size_mb = int(environ.get('FLUVII_CONSUMER_MESSAGE_TOTAL_MAX_MB', '5'))
         self.message_queue_max_size_mb = int(environ.get('FLUVII_CONSUMER_MESSAGE_QUEUE_MAX_MB', '20'))  # as kilobytes
 
         # used in consumer.poll(), not actually passed as a config
-        self.poll_timeout_secs = int(environ.get('FLUVII_CONSUMER_POLL_TIMEOUT_SECONDS', '8'))
+        self.poll_timeout_secs = int(environ.get('FLUVII_CONSUMER_POLL_TIMEOUT_SECONDS', '5'))
 
         self.batch_consume_max_count = int(environ.get('FLUVII_CONSUMER_BATCH_CONSUME_MAX_COUNT', '100'))
         self.batch_consume_max_time_secs = int(environ.get('NU_CONSUMER_DEFAULT_BATCH_CONSUME_MAX_TIME_SECONDS', '10'))

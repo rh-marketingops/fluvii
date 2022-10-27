@@ -65,7 +65,7 @@ class Consumer:
         return settings
 
     def _init_consumer(self, auto_subscribe=True):
-        LOGGER.debug('Initializing Consumer...')
+        LOGGER.info('Initializing Consumer...')
         self._consumer = DeserializingConsumer(self._make_config())
         LOGGER.info('Consumer Initialized!')
         if auto_subscribe:
@@ -154,6 +154,7 @@ class TransactionalConsumer(Consumer):
         self._batch_offset_ends = {}
         self._messages = []
         self._consume_message_count = 0
+        self.message = None
     
     def _set_batch_start_time(self):
         self._batch_time_elapse_start = datetime.datetime.now().timestamp()
@@ -239,15 +240,13 @@ class TransactionalConsumer(Consumer):
             for partition, offset in partitions.items():
                 if partition in assignments.get(topic, []):
                     LOGGER.info(f"Reversing topic {topic} partition {partition} back to offset {offset}")
-                    self.consumer.seek(TopicPartition(topic=topic, partition=partition, offset=offset))
-                    LOGGER.info(f"Consumer set topic {topic} partition {partition} to offset {self.consumer.position([TopicPartition(topic=topic, partition=partition)])[0].offset}")
+                    self._consumer.seek(TopicPartition(topic=topic, partition=partition, offset=offset))
         self._init_attrs()
 
     def commit(self, producer):
         offsets_to_commit = [TopicPartition(topic, partition, offset + 1) for topic, partitions in
                              self._batch_offset_ends.items() for partition, offset in partitions.items()]
         self._commit(producer, offsets_to_commit)
-        self.message = None
         self._init_attrs()
 
     def consume(self, timeout=None, consume_multiplier=1):

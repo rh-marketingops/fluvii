@@ -2,7 +2,7 @@ from confluent_kafka import KafkaException
 import logging
 from copy import deepcopy
 from fluvii.general_utils import parse_headers
-from fluvii.custom_exceptions import GracefulTransactionFailure, FatalTransactionFailure
+from fluvii.custom_exceptions import GracefulTransactionFailure, FatalTransactionFailure, FailedAbort
 from json import dumps, loads
 
 
@@ -11,17 +11,20 @@ LOGGER = logging.getLogger(__name__)
 
 def handle_kafka_exception(kafka_error):
     LOGGER.error(kafka_error)
-    if kafka_error.args[0].code == 'ILLEGAL GENERATION':
-        LOGGER.info('The consumer group generation id is invalid (likely due to a rebalance call), aborting transaction')
-        raise FatalTransactionFailure
+    LOGGER.error(kafka_error.args[0].code)
+    # if kafka_error.args[0].code == 'ILLEGAL GENERATION':
+    #     LOGGER.info('The consumer group generation id is invalid (likely due to a rebalance call), aborting transaction')
+    #     raise FatalTransactionFailure
     retriable = kafka_error.args[0].retriable()
     abort = kafka_error.args[0].txn_requires_abort()
     # TODO: take advantage of retriable
     LOGGER.info(f'KafkaException: is retriable? - {retriable}, should abort? - {abort}')
-    if retriable or abort:
+    if retriable:
         raise GracefulTransactionFailure
-    else:
+    elif abort:
         raise FatalTransactionFailure
+    else:
+        pass
 
 
 class Transaction:
@@ -30,7 +33,7 @@ class Transaction:
         self.consumer = consumer
         self.message = message
         self._allow_auto_consume = auto_consume
-        self._refresh_after_commit = refresh_after_commit
+        self._refresh_after_commit = refresh_after_commit  # allows you to re-use the object, as needed
         self._init_attrs()
 
         # this optional attribute should never be referenced/used by class methods here to keep transactions independent of the app
@@ -78,23 +81,20 @@ class Transaction:
         try:
             LOGGER.info('Aborting transaction.')
             self.producer.abort_transaction(10)
-        except KafkaException as kafka_error:
-            LOGGER.info(f"Failed to abort transaction: {kafka_error}")
-            raise
+        except KafkaException as e:
+            LOGGER.info(f"Failed to abort transaction: {e}")
+            raise FailedAbort
 
     def abort_transaction(self):
         LOGGER.debug('Aborting any open transactions, if needed.')
-        reset_producer = self.producer.active_transaction
-        if reset_producer:
-            self._abort_transaction()
         if self.consumer.pending_commits:
             self.consumer.rollback_consumption()
+        if self.producer.active_transaction:
+            self._abort_transaction()
         self._init_attrs()
-        return reset_producer
 
-    def produce(self, value, producer_kwargs=None):
-        if not producer_kwargs:
-            producer_kwargs = {}
+    def produce(self, producer_kwargs):
+        value = producer_kwargs.pop('value', producer_kwargs)
         self.producer.produce(value, message_passthrough=self.message, **producer_kwargs)
 
     def _commit(self):
@@ -148,14 +148,14 @@ class TableTransaction(Transaction):
     def _update_changelog(self):
         if self._is_not_changelog_message and (pending_write := self._pending_table_writes.get(self.partition(), {}).get(self.key())):
             LOGGER.debug(f'Updating changelog topic for {self.key()}')
-            self.produce(
-                dumps(pending_write),
-                dict(topic=self.app_changelog_topic, key=self.key(), partition=self.partition())
-            )
+            self.produce(dict(value=dumps(pending_write), topic=self.app_changelog_topic, key=self.key(), partition=self.partition()))
 
     def _update_table_entry_from_changelog(self):
         self._is_not_changelog_message = False  # so we dont produce a message back to the changelog
         self.update_table_entry(loads(self.value()))
+
+    def _recovery_commit(self):
+        self.consumer._init_attrs()
 
     def _table_write(self, recovery_multiplier=1):
         for p, msgs in self._pending_table_writes.items():

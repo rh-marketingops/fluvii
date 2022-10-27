@@ -1,7 +1,6 @@
 from confluent_kafka import SerializingProducer
-from confluent_kafka.admin import AdminClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
-from fluvii.general_utils import parse_headers
+from fluvii.general_utils import parse_headers, Admin
 from fluvii.custom_exceptions import ProducerTimeoutFailure
 import json
 import mmh3
@@ -19,13 +18,13 @@ class Producer:
         self._producer = None
         self._topic_partition_metadata = {}
         self._schema_registry = schema_registry
-        self._admin_client = None
+        self._admin = None
 
         self.topic_schemas = topic_schema_dict
         self.metrics_manager = metrics_manager
 
         self._init_producer()
-        self._init_admin_client()
+        self._init_admin()
         for topic, schema in self.topic_schemas.items():
             self.add_topic(topic, schema)
 
@@ -68,16 +67,12 @@ class Producer:
         return settings
 
     def _init_producer(self):
+        LOGGER.info('Initializing producer...')
         self._producer = SerializingProducer(self._make_config())
+        LOGGER.info('Producer initialized successfully!')
 
-    def _init_admin_client(self):
-        auth = {}
-        if self._auth:
-            auth = self._auth.as_client_dict()
-        if not self._admin_client:
-            self._admin_client = AdminClient({
-                "bootstrap.servers": self._urls,
-                **auth})
+    def _init_admin(self):
+        self._admin = Admin(self._urls, self._auth)
 
     def _partitioner(self, key, topic):
         try:
@@ -91,16 +86,17 @@ class Producer:
         return str(uuid.uuid1())
 
     def _add_serializer(self, topic, schema):
+        LOGGER.info(f'Adding serializer for producer topic {topic}')
         self.topic_schemas.update({topic: AvroSerializer(self._schema_registry, json.dumps(schema))})
 
     def _get_topic_metadata(self, topic):
-        # TODO: retrieve the metadata (mostly just partitions) for said topic
-        partitions = self._admin_client.list_topics().topics[topic].partitions
+        partitions = self._admin.list_topics().topics[topic].partitions
         LOGGER.debug(partitions)
         self._topic_partition_metadata.update({topic: len(partitions)})
 
     def add_topic(self, topic, schema):
         """For adding topics at runtime"""
+        LOGGER.info(f'Adding schema for topic {topic}')
         self._get_topic_metadata(topic)
         self._add_serializer(topic, schema)
 
@@ -122,12 +118,12 @@ class Producer:
                 topic = topics[0]
             else:
                 raise Exception('Topic must be defined if managing more than 1 topic')
-        if not partition:
+        if partition is None:
             partition = self._partitioner(key, topic)
         self._producer._value_serializer = self.topic_schemas[topic]
         if '__changelog' not in topic:  # TODO: add a separate logger for changelog stuff, but for now it just clutters things
             LOGGER.debug(f'Adding message to the produce queue for [topic, partition, key] - [{topic}, {partition}, {repr(key)}]')
-        LOGGER.info(f'Producing message with guid {headers_out["guid"]}')
+            LOGGER.info(f'Producing message with guid {headers_out["guid"]}')
         return dict(topic=topic, key=key, value=value, headers=headers_out, partition=partition)
 
     def produce(self, value, key=None, topic=None, headers=None, partition=None, message_passthrough=None):
@@ -146,6 +142,7 @@ class Producer:
         NOTE: Only used for synchronous producing, which is dramatically slower than asychnronous.
         """
         attempt = 1
+        LOGGER.debug("Sending/confirming the leftover messages in producer message queue")
         while self._producer.__len__() > 0:
             if attempt <= attempts:
                 LOGGER.debug(f"Produce flush attempt: {attempt} of {attempts}")
@@ -192,3 +189,6 @@ class TransactionalProducer(Producer):
         self._producer.commit_transaction(*args, **kwargs)
         self._producer.poll(0)
         self.active_transaction = False
+
+    def close(self):
+        pass

@@ -46,4 +46,4 @@ class SchemaRegistry:
                 scheme = 'http://'
             url = url._replace(scheme='')
         self.registry = SchemaRegistryClient({'url': f'{scheme}{auth}{url.geturl()}'})
-
+        LOGGER.info('Registry client initialized successfully!')

@@ -53,7 +53,7 @@ class MetricsPusher:
     def _push_metrics_loop(self):
         while True:
             self._set_metrics_pod_ips()
-            time.sleep(self._config.push_rate)
+            time.sleep(self._config.push_rate_seconds)
             self._push_metrics()
 
     def _create_metrics_pushing_thread(self):

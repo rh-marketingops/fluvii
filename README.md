@@ -1,14 +1,13 @@
 ### Disclaimer
 
-_Fluvii_ should be considered in a late alpha/early beta state and probably not _quite_ stable enough for your production environment. 
+_Fluvii_ is approaching a stable enough state that you can reliably test it out...maybe even run it in production
+with some low-stakes use cases!
 
-It's still in a transitional state, but wanted to get what code was available out for those who attended `Current 2022` and had interest! 
+That being said, it's still in a transitional state, so don't be surprised if there are still some more organizational
+efforts underway!
 
-We are actively refactoring it from our own in-house library while simultaneously improving its organization and abstractions, 
-ultimately making it more open-source/contribution ready! 
-
-It's probably not too far off from getting our seal of approval, so we wanted to get the word out and let people start
-trying it out. We're hoping to add more configuration settings and eliminate a few more bugs first.
+That being said, we don't envision the object methods and interface changing much, other than of course to
+add new features, which is more down the road.
 
 On that note...
 
@@ -17,20 +16,16 @@ On that note...
 - Unit Tests
 - Better general documentation
 - More configuration options
+- Improved configuration structure
 - Contribution Guide
-- Actual pypi library
-- Fixing a rebalance bug in the `FluviiTableApp`
-- Cleaning up changelog topic management code in `FluviiTableApp`
-- More examples in README
+- Fixing some more rare/minor rebalance bugs in the `FluviiTableApp`
+- More usage examples in README
 
 We are dedicated to having these things by the end of 2022.
 
 # Installation
 
-For now, to use fluvii, you can clone the repo, then do a local install via `pip install -e .` in the root folder
-of the repo. 
-
-There will be an installable version very soon, check back at this README which will denote when that's available.
+`pip intall fluvii`
 
 # What is _Fluvii_?
 
@@ -79,6 +74,7 @@ Right now, _Fluvii_ assumes/defaults to:
 - Using Prometheus metrics (and a push-gateway for app metrics)
 - Using Sqlite as your table database
 - Using SASL (or nothing) as your auth scheme
+- 1 schema per topic
 - If tabling, each app that is part of the same consumer group has a shared storage point (like a mounted drive in Kubernetes).
 
 Most of these will eventually be generalized to handle alternatives.
@@ -203,8 +199,7 @@ def my_app_logic(transaction: Transaction, thing_inited_at_runtime):
     cool_message_out = msg.value()
     cool_message_out['cool_field'] = thing_inited_at_runtime #  'cool value'
     transaction.produce(
-        cool_message_out, 
-        {'topic': 'cool_topic_out', 'key': msg.key(), 'headers': msg.headers()}
+        {'value': cool_message_out, 'topic': 'cool_topic_out', 'key': msg.key(), 'headers': msg.headers()}
     )
     
 fluvii_app = FluviiApp(
@@ -214,20 +209,24 @@ fluvii_app = FluviiApp(
     app_function_arglist = [init_at_runtime_thing])  # optional! Here to show functionality.
 fluvii_app.run()
 ```
-If you're feeling really lazy, you can actually cut some of the `transaction.produce()` dict arguments, as anything you
+If you're feeling really lazy, you can actually cut some the `transaction.produce()` dict arguments, as anything you
 don't pass (except `partition`) will be inhereted from the consumed message, like so:
 
 ```python
 ## will produce with the consumed message's key and headers
-transaction.produce(
-    cool_message_out, 
-    {'topic': 'cool_topic_out'}
+transaction.produce({'value': cool_message_out, 'topic': 'cool_topic_out'}
 )
 ```
 
-You could also cut the dict out entirely if there was only 1 topic in the `produce_topic_schema_dict`, as it will assume that's the topic
-you want to produce to.
+For maximum laziness,you could also cut the dict out entirely if there was only 1 topic in the `produce_topic_schema_dict`, as it will assume that's the topic
+you want to produce to, like so:
 
+```python
+## will produce with the consumed message's key and headers
+transaction.produce(cool_message_out)
+```
+
+Just make sure your message value isn't itself a dictionary with a "value" key in this case =)
 
 ### Using a table with a `FluviiTableApp`
 

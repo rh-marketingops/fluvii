@@ -2,7 +2,10 @@ from . import FluviiApp
 
 
 class FluviiMultiMessageApp(FluviiApp):
-
+    """
+    This is for when you need to handle multiple messages at once, like for doing a bulk api batch.
+    Your app_function should be written with the expectation that transaction.messages() is a list of messages to manipulate
+    """
     def _set_config(self):
         super()._set_config()
         self._config.consumer_config.batch_consume_store_messages = True

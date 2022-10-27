@@ -22,7 +22,7 @@ packages = setuptools.find_packages()
 
 setuptools.setup(
     name="fluvii",
-    version="0.1.1",
+    version="0.1.2",
     description="A simple Kafka streams implementation in Python using confluent-kafka-python",
     packages=packages,
     install_requires=install_requires,

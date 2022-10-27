@@ -36,7 +36,7 @@ class MetricsPusher:
         :return: None
         """
         try:
-            socket_info_list = socket.getaddrinfo(self._config.headless_service_name, self._config.headless_service_name)
+            socket_info_list = socket.getaddrinfo(self._config.headless_service_name, self._config.headless_service_port)
             self.metrics_pod_ips = {f'{result[-1][0]}:{self._config.metrics_port}' for result in socket_info_list}
             LOGGER.debug(f'Set gateway addresses: {self.metrics_pod_ips}')
         except Exception:

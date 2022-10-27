@@ -95,13 +95,11 @@ class Consumer:
                 LOGGER.info(
                     f"Message consumed from topic {self.message.topic()} partition {self.message.partition()}, offset {self.message.offset()}; GUID {guid}")
                 LOGGER.debug(f"Consumed message key: {repr(self.message.key())}")
+                if self.metrics_manager:
+                    self.metrics_manager.inc_messages_consumed(1, self.message.topic())
         except AttributeError:
             if "object has no attribute 'headers'" in str(self.message.error()):
                 raise ConsumeMessageError("Headers were inaccessible on the message. Potentially a corrupt message?")
-
-        # Increment the metric for consumed messages by one
-        if self.metrics_manager:
-            self.metrics_manager.inc_messages_consumed(1, self.message.topic())
 
     def key(self):
         return deepcopy(self.message.key())

@@ -35,9 +35,12 @@ class MetricsPusher:
         redundant Prometheus pushgateways.
         :return: None
         """
-        socket_info_list = socket.getaddrinfo(self._config.headless_service_name, self._config.headless_service_name)
-        self.metrics_pod_ips = {f'{result[-1][0]}:{self._config.metrics_port}' for result in socket_info_list}
-        LOGGER.debug(f'Set gateway addresses: {self.metrics_pod_ips}')
+        try:
+            socket_info_list = socket.getaddrinfo(self._config.headless_service_name, self._config.headless_service_name)
+            self.metrics_pod_ips = {f'{result[-1][0]}:{self._config.metrics_port}' for result in socket_info_list}
+            LOGGER.debug(f'Set gateway addresses: {self.metrics_pod_ips}')
+        except Exception:
+            LOGGER.exception('Failed to set metric pod ips')
 
     def _push_metrics(self):
         for gateway in self.metrics_pod_ips:

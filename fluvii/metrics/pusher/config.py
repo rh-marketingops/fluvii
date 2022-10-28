@@ -4,7 +4,8 @@ from os import environ
 class MetricsPusherConfig:
     def __init__(self, hostname=None):
         if not hostname:
-            self.hostname = environ.get('FLUVII_HOSTNAME')
+            hostname = environ.get('FLUVII_HOSTNAME')
+        self.hostname = hostname
         self.headless_service_name = environ.get('FLUVII_METRICS_PUSHER_KUBERNETES_HEADLESS_SERVICE_NAME')
         self.headless_service_port = environ.get('FLUVII_METRICS_PUSHER_KUBERNETES_HEADLESS_SERVICE_PORT')
         self.metrics_port = environ.get('FLUVII_METRICS_PUSHER_KUBERNETES_POD_APP_PORT')

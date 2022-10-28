@@ -72,6 +72,7 @@ class Producer:
         LOGGER.info('Producer initialized successfully!')
 
     def _init_admin(self):
+        LOGGER.info("initializing the producer admin client...")
         self._admin = Admin(self._urls, self._auth)
 
     def _partitioner(self, key, topic):

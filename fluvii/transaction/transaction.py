@@ -32,6 +32,7 @@ class Transaction:
         self.producer = producer
         self.consumer = consumer
         self.message = message
+        self.metrics_manager = self.consumer.metrics_manager
         self._allow_auto_consume = auto_consume
         self._refresh_after_commit = refresh_after_commit  # allows you to re-use the object, as needed
         self._init_attrs()

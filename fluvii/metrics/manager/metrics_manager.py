@@ -71,7 +71,7 @@ class MetricsManager:
         return [metric.name for metric in self._metrics.values()]
 
     def new_metric(self, metric_name, additional_labels=None, **kwargs):
-        self._metrics[metric_name] = Metric(metric_name, self.registry, additional_labels=additional_labels, **kwargs)
+        self._metrics[metric_name] = Metric(metric_name, self.registry, additional_labels=additional_labels, metrics_config=self._config, **kwargs)
 
     def inc_metric(self, metric_name, number=1, label_dict=None):
         self._metrics[metric_name].inc(number=number, label_dict=label_dict)

@@ -19,6 +19,10 @@ class FluviiConfig:
                  producer_config=None, consumer_config=None, metrics_manager_config=None, metrics_pusher_config=None):
         self._time = int(datetime.timestamp(datetime.now()))
 
+        # Set via properties
+        self._hostname = None
+        self._table_changelog_topic = None
+
         # Required vars
         if not client_urls:
             client_urls = environ['FLUVII_KAFKA_BOOTSTRAP_SERVERS']
@@ -42,15 +46,6 @@ class FluviiConfig:
             producer_config = ProducerConfig()
         if not consumer_config:
             consumer_config = ConsumerConfig()
-        # TODO: come up with a way to handle config settings that overlap multiple config objects, like w/metrics configs
-        if not metrics_manager_config:
-            metrics_manager_config = MetricsManagerConfig()
-        if not metrics_pusher_config:
-            metrics_pusher_config = MetricsPusherConfig()
-        self.consumer_config = consumer_config
-        self.producer_config = producer_config
-        self.metrics_manager_config = metrics_manager_config
-        self.metrics_pusher_config = metrics_pusher_config
 
         self.app_name = environ.get("FLUVII_APP_NAME", 'fluvii_app')
         self.table_folder_path = environ.get('FLUVII_TABLE_FOLDER_PATH', '/tmp')
@@ -59,6 +54,16 @@ class FluviiConfig:
 
         self._hostname = None
         self._table_changelog_topic = None
+
+        # TODO: come up with a way to handle config settings that overlap multiple config objects, like w/metrics configs
+        if not metrics_manager_config:
+            metrics_manager_config = MetricsManagerConfig(hostname=self.hostname, app_name=self.app_name)
+        if not metrics_pusher_config:
+            metrics_pusher_config = MetricsPusherConfig(hostname=self.hostname)
+        self.consumer_config = consumer_config
+        self.producer_config = producer_config
+        self.metrics_manager_config = metrics_manager_config
+        self.metrics_pusher_config = metrics_pusher_config
 
     # These properties allow settings that depend on others to dynamically adjust their defaults
     @property

@@ -23,7 +23,8 @@ class ConsumerConfig(KafkaConfigBase):
         self.poll_timeout_secs = int(environ.get('FLUVII_CONSUMER_POLL_TIMEOUT_SECONDS', '5'))
 
         self.batch_consume_max_count = int(environ.get('FLUVII_CONSUMER_BATCH_CONSUME_MAX_COUNT', '100'))
-        self.batch_consume_max_time_secs = int(environ.get('NU_CONSUMER_DEFAULT_BATCH_CONSUME_MAX_TIME_SECONDS', '10'))
+        self.batch_consume_max_time_secs = int(environ.get('NU_CONSUMER_BATCH_CONSUME_MAX_TIME_SECONDS', '10'))
+        self.batch_consume_max_empty_polls = int(environ.get('NU_CONSUMER_BATCH_CONSUME_MAX_EMPTY_POLLS', '2'))
         self.batch_consume_store_messages = False
 
     def as_client_dict(self):

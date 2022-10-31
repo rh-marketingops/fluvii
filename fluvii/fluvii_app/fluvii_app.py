@@ -1,5 +1,5 @@
 from fluvii.general_utils import log_and_raise_error
-from fluvii.custom_exceptions import NoMessageError, SignalRaise, GracefulTransactionFailure, FatalTransactionFailure, FinishedTransactionBatch, FailedAbort, EndCurrentLoop
+from fluvii.exceptions import SignalRaise, GracefulTransactionFailure, FatalTransactionFailure, FinishedTransactionBatch, FailedAbort, TransactionCommitted, TransactionNotRequired
 from fluvii.consumer import TransactionalConsumer
 from fluvii.producer import TransactionalProducer
 from fluvii.transaction import Transaction
@@ -120,10 +120,10 @@ class FluviiApp:
                     self._handle_message(**kwargs)
                 except FinishedTransactionBatch:
                     self._finalize_app_batch()
-                    raise EndCurrentLoop
-        except EndCurrentLoop:
+                    raise TransactionCommitted
+        except TransactionCommitted:
             pass
-        except NoMessageError:
+        except TransactionNotRequired:
             self._no_message_callback()
         except GracefulTransactionFailure:
             LOGGER.info("Graceful transaction failure; retrying commit...")

@@ -1,4 +1,4 @@
-from fluvii.custom_exceptions import NoMessageError, PartitionsAssigned, FinishedTransactionBatch, GracefulTransactionFailure, FatalTransactionFailure, EndCurrentLoop
+from fluvii.exceptions import PartitionsAssigned, FinishedTransactionBatch, GracefulTransactionFailure, FatalTransactionFailure, TransactionCommitted, TransactionNotRequired
 from fluvii.transaction import TableTransaction
 from .fluvii_app import FluviiApp
 from .rebalance_manager import TableRebalanceManager
@@ -108,10 +108,10 @@ class FluviiTableApp(FluviiApp):
                     self._handle_recovery_message()
                 except FinishedTransactionBatch:
                     self._finalize_recovery_batch()
-                    raise EndCurrentLoop
-        except EndCurrentLoop:
+                    raise TransactionCommitted
+        except TransactionCommitted:
             pass
-        except NoMessageError:
+        except TransactionNotRequired:
             checks -= 1
             LOGGER.debug(f'No further changelog messages, checks remaining: {checks}')
             self.commit_tables()

@@ -126,7 +126,11 @@ class FailedAbort(Exception):
     pass
 
 
-class EndCurrentLoop(Exception):
+class TransactionCommitted(Exception):
+    pass
+
+
+class TransactionNotRequired(Exception):
     pass
 
 

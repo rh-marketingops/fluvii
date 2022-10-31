@@ -1,6 +1,6 @@
 from confluent_kafka import TopicPartition, KafkaException
 from fluvii.sqlite import SqliteFluvii
-from fluvii.custom_exceptions import NoMessageError
+from fluvii.exceptions import TransactionNotRequired
 from datetime import datetime
 import logging
 from time import sleep
@@ -151,7 +151,7 @@ class TableRebalanceManager:
                     LOGGER.debug('Running a consumer poll to allow seeking to work on the changelog partitions...')
                     try:
                         self.consumer.consume(timeout=8)
-                    except NoMessageError:
+                    except TransactionNotRequired:
                         pass
                     self._changelog_seek_and_activate()
                 else:

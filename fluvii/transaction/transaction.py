@@ -2,7 +2,7 @@ from confluent_kafka import KafkaException
 import logging
 from copy import deepcopy
 from fluvii.general_utils import parse_headers
-from fluvii.custom_exceptions import GracefulTransactionFailure, FatalTransactionFailure, FailedAbort
+from fluvii.exceptions import GracefulTransactionFailure, FatalTransactionFailure, FailedAbort
 from json import dumps, loads
 
 

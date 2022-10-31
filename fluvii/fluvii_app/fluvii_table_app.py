@@ -93,7 +93,6 @@ class FluviiTableApp(FluviiApp):
         self.transaction._update_table_entry_from_changelog()
 
     def _finalize_recovery_batch(self):
-        LOGGER.info(f'Consumed {self._consumer._consume_message_count} changelog messages')
         self.transaction._table_write(recovery_multiplier=self._recovery_multiplier)  # relay transaction's cached writes to the table's write cache
         self.transaction._recovery_commit()
         self._rebalance_manager.update_recovery_status()

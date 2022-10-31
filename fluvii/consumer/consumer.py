@@ -144,14 +144,20 @@ class TransactionalConsumer(Consumer):
         self._batch_time_elapse_start = None
         self._consume_max_time_secs = batch_consume_max_time_seconds
         self._consume_max_count = batch_consume_max_count
+        self._consume_max_empty_polls = self._settings.batch_consume_max_empty_polls
         self._store_batch_messages = batch_consume_store_messages
         self._init_attrs()
+        self._reset_keep_consuming_trackers()
+
+    def _reset_keep_consuming_trackers(self):
+        self._batch_time_elapse_start = None
+        self._batch_remaining_empty_polls = self._consume_max_empty_polls
+        self._consume_message_count = 0
 
     def _init_attrs(self):
         self._batch_offset_starts = {}
         self._batch_offset_ends = {}
         self._messages = []
-        self._consume_message_count = 0
         self.message = None
     
     def _set_batch_start_time(self):
@@ -174,7 +180,7 @@ class TransactionalConsumer(Consumer):
         return True
 
     def _keep_consuming(self, consume_multiplier=1):
-        return self._max_consume_count_continue(consume_multiplier=consume_multiplier) and self._max_consume_time_continue()
+        return self._batch_remaining_empty_polls and self._max_consume_count_continue(consume_multiplier=consume_multiplier) and self._max_consume_time_continue()
 
     def _mark_offset_start(self):
         if self.message.topic() not in self._batch_offset_starts:
@@ -226,7 +232,7 @@ class TransactionalConsumer(Consumer):
 
     @property
     def pending_commits(self):
-        return bool(self._consume_message_count)
+        return bool(self._mark_offset_end)
 
     def messages(self):
         if self._store_batch_messages:
@@ -242,6 +248,7 @@ class TransactionalConsumer(Consumer):
                     LOGGER.info(f"Reversing topic {topic} partition {partition} back to offset {offset}")
                     self._consumer.seek(TopicPartition(topic=topic, partition=partition, offset=offset))
         self._init_attrs()
+        self._reset_keep_consuming_trackers()
 
     def commit(self, producer):
         offsets_to_commit = [TopicPartition(topic, partition, offset + 1) for topic, partitions in
@@ -254,10 +261,11 @@ class TransactionalConsumer(Consumer):
         Consumes a message from the broker while handling errors.
         If the message is valid, then the message is returned.
         """
-        if self._keep_consuming(consume_multiplier=consume_multiplier):
+        while self._keep_consuming(consume_multiplier=consume_multiplier):
             try:
                 return super().consume(timeout=timeout)
             except NoMessageError:
-                pass
+                self._batch_remaining_empty_polls -= 1
         LOGGER.info('Consumption attempts for this batch are finished.')
+        self._reset_keep_consuming_trackers()
         raise FinishedTransactionBatch

@@ -1,7 +1,7 @@
 from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry.avro import AvroSerializer
 from fluvii.general_utils import parse_headers, Admin
-from fluvii.custom_exceptions import ProducerTimeoutFailure
+from fluvii.exceptions import ProducerTimeoutFailure
 import json
 import mmh3
 import uuid

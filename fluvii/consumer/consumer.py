@@ -1,6 +1,6 @@
 from confluent_kafka import DeserializingConsumer, TopicPartition
 from confluent_kafka.schema_registry.avro import AvroDeserializer
-from fluvii.custom_exceptions import NoMessageError, ConsumeMessageError, FinishedTransactionBatch
+from fluvii.exceptions import NoMessageError, ConsumeMessageError, FinishedTransactionBatch, TransactionNotRequired
 from fluvii.general_utils import parse_headers, get_guid_from_message
 from copy import deepcopy
 import logging
@@ -204,6 +204,8 @@ class TransactionalConsumer(Consumer):
         if producer.active_transaction:
             LOGGER.info('Comitting transaction!')
             producer.commit_transaction(30)
+        else:
+            raise TransactionNotRequired
 
     def _make_config(self):
         config = super()._make_config()
@@ -252,13 +254,10 @@ class TransactionalConsumer(Consumer):
         Consumes a message from the broker while handling errors.
         If the message is valid, then the message is returned.
         """
-        try:
-            if self._keep_consuming(consume_multiplier=consume_multiplier):
+        if self._keep_consuming(consume_multiplier=consume_multiplier):
+            try:
                 return super().consume(timeout=timeout)
-            LOGGER.info('Consumption attempts for this batch are finished.')
-            raise FinishedTransactionBatch
-        except NoMessageError:
-            if self._batch_offset_ends:
-                raise FinishedTransactionBatch
-            else:
-                raise
+            except NoMessageError:
+                pass
+        LOGGER.info('Consumption attempts for this batch are finished.')
+        raise FinishedTransactionBatch

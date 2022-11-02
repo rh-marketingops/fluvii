@@ -75,13 +75,20 @@ class Producer:
         LOGGER.info("initializing the producer admin client...")
         self._admin = Admin(self._urls, self._auth)
 
-    def _partitioner(self, key, topic):
+    def _get_topic_metadata(self, topic):
+        partitions = self._admin.list_topics().topics[topic].partitions
+        LOGGER.debug(partitions)
+        self._topic_partition_metadata.update({topic: len(partitions)})
+
+    def _get_topic_partition_count(self, topic):
         try:
-            p_count = self._topic_partition_metadata[topic]
+            return self._topic_partition_metadata[topic]
         except KeyError:
             self._get_topic_metadata(topic)
-            p_count = self._topic_partition_metadata[topic]
-        return mmh3.hash(key) % p_count
+            return self._topic_partition_metadata[topic]
+
+    def _partitioner(self, key, topic):
+        return mmh3.hash(key) % self._get_topic_partition_count(topic)
 
     def _generate_guid(self):
         return str(uuid.uuid1())
@@ -90,16 +97,14 @@ class Producer:
         LOGGER.info(f'Adding serializer for producer topic {topic}')
         self.topic_schemas.update({topic: AvroSerializer(self._schema_registry, json.dumps(schema))})
 
-    def _get_topic_metadata(self, topic):
-        partitions = self._admin.list_topics().topics[topic].partitions
-        LOGGER.debug(partitions)
-        self._topic_partition_metadata.update({topic: len(partitions)})
-
-    def add_topic(self, topic, schema):
+    def add_topic(self, topic, schema, overwrite=False):
         """For adding topics at runtime"""
-        LOGGER.info(f'Adding schema for topic {topic}')
-        self._get_topic_metadata(topic)
-        self._add_serializer(topic, schema)
+        if topic in self.topic_schemas and not overwrite:
+            LOGGER.debug("producer already has a schema registered for that topic...")
+        else:
+            LOGGER.info(f'Adding schema for topic {topic}')
+            self._get_topic_metadata(topic)
+            self._add_serializer(topic, schema)
 
     def _format_produce(self, value, key, topic, headers, partition, message_passthrough):
         headers_out = {}

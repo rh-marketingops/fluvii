@@ -1,1 +1,1 @@
-from .config import SaslPlainClientConfig
+from .config import SaslPlainClientConfig, SaslOauthClientConfig

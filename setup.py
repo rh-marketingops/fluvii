@@ -10,13 +10,14 @@ install_requires = [
 ]
 
 dev_requires = install_requires + [
+    "black",
     "pip-tools",
     "pytest",
     "pytest-cov",
-    "time-machine",
-    "twine",
     "sphinx",
     "sphinx-autodoc-typehints",
+    "time-machine",
+    "twine",
 ]
 
 packages = setuptools.find_packages()

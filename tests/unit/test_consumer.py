@@ -3,7 +3,7 @@ from typing import Any, Dict
 import pytest
 
 from fluvii.consumer import Consumer
-from fluvii.custom_exceptions import NoMessageError
+from fluvii.exceptions import NoMessageError
 
 
 class MockDeserializingConsumer:

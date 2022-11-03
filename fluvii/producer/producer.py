@@ -20,12 +20,15 @@ class Producer:
         self._schema_registry = schema_registry
         self._admin = None
 
-        self.topic_schemas = topic_schema_dict
+        self.topic_schemas = {}
         self.metrics_manager = metrics_manager
 
         self._init_producer()
         self._init_admin()
-        for topic, schema in self.topic_schemas.items():
+
+        if not topic_schema_dict:
+            topic_schema_dict = {}
+        for topic, schema in topic_schema_dict.items():
             self.add_topic(topic, schema)
 
     def __getattr__(self, attr):

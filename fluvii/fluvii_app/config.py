@@ -4,6 +4,9 @@ from fluvii.auth import SaslPlainClientConfig, SaslOauthClientConfig
 from fluvii.metrics import MetricsManagerConfig, MetricsPusherConfig
 from os import environ
 from datetime import datetime
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 class FluviiConfig:
@@ -35,12 +38,14 @@ class FluviiConfig:
         if not client_auth_config:
             if environ.get("FLUVII_CLIENT_USERNAME"):
                 if environ.get("FLUVII_OAUTH_URL"):
+                    LOGGER.info('Kafka clients will be initialized with OAUTH authentication')
                     client_auth_config = SaslOauthClientConfig(
                         environ["FLUVII_CLIENT_USERNAME"],
                         environ["FLUVII_CLIENT_PASSWORD"],
                         environ["FLUVII_OAUTH_URL"],
                         environ["FLUVII_OAUTH_SCOPE"])
                 else:
+                    LOGGER.info('Kafka clients will be initialized with plain authentication')
                     client_auth_config = SaslPlainClientConfig(
                         environ["FLUVII_CLIENT_USERNAME"],
                         environ["FLUVII_CLIENT_PASSWORD"])

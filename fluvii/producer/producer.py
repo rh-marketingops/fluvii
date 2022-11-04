@@ -24,7 +24,6 @@ class Producer:
         self.metrics_manager = metrics_manager
 
         self._init_producer()
-        self._init_admin()
 
         if not topic_schema_dict:
             topic_schema_dict = {}
@@ -72,14 +71,11 @@ class Producer:
     def _init_producer(self):
         LOGGER.info('Initializing producer...')
         self._producer = SerializingProducer(self._make_config())
+        self._producer.poll(0)  # allows topic metadata querying to work immediately after init
         LOGGER.info('Producer initialized successfully!')
 
-    def _init_admin(self):
-        LOGGER.info("initializing the producer admin client...")
-        self._admin = Admin(self._urls, self._auth)
-
     def _get_topic_metadata(self, topic):
-        partitions = self._admin.list_topics().topics[topic].partitions
+        partitions = self._producer.list_topics().topics[topic].partitions
         LOGGER.debug(partitions)
         self._topic_partition_metadata.update({topic: len(partitions)})
 

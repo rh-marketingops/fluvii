@@ -1,9 +1,12 @@
 from fluvii.producer import ProducerConfig
 from fluvii.consumer import ConsumerConfig
-from fluvii.auth import SaslPlainClientConfig
+from fluvii.auth import SaslPlainClientConfig, SaslOauthClientConfig
 from fluvii.metrics import MetricsManagerConfig, MetricsPusherConfig
 from os import environ
 from datetime import datetime
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 class FluviiConfig:
@@ -34,10 +37,23 @@ class FluviiConfig:
         # Set only if env var or object is specified
         if not client_auth_config:
             if environ.get("FLUVII_CLIENT_USERNAME"):
-                client_auth_config = SaslPlainClientConfig(environ["FLUVII_CLIENT_USERNAME"], environ["FLUVII_CLIENT_PASSWORD"])
+                if environ.get("FLUVII_OAUTH_URL"):
+                    LOGGER.info('Kafka clients will be initialized with OAUTH authentication')
+                    client_auth_config = SaslOauthClientConfig(
+                        environ["FLUVII_CLIENT_USERNAME"],
+                        environ["FLUVII_CLIENT_PASSWORD"],
+                        environ["FLUVII_OAUTH_URL"],
+                        environ["FLUVII_OAUTH_SCOPE"])
+                else:
+                    LOGGER.info('Kafka clients will be initialized with plain authentication')
+                    client_auth_config = SaslPlainClientConfig(
+                        environ["FLUVII_CLIENT_USERNAME"],
+                        environ["FLUVII_CLIENT_PASSWORD"])
         if not schema_registry_auth_config:
             if environ.get("FLUVII_SCHEMA_REGISTRY_USERNAME"):
-                schema_registry_auth_config = SaslPlainClientConfig(environ["FLUVII_SCHEMA_REGISTRY_USERNAME"], environ["FLUVII_SCHEMA_REGISTRY_PASSWORD"])
+                schema_registry_auth_config = SaslPlainClientConfig(
+                    environ["FLUVII_SCHEMA_REGISTRY_USERNAME"],
+                    environ["FLUVII_SCHEMA_REGISTRY_PASSWORD"])
         self.client_auth_config = client_auth_config
         self.schema_registry_auth_config = schema_registry_auth_config
 

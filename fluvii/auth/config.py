@@ -5,15 +5,13 @@ import time
 
 class SaslPlainClientConfig(KafkaConfigBase):
     def __init__(self, username, password):
-        self.security_protocol = 'sasl_ssl'
-        self.mechanism = 'PLAIN'
         self.username = username
         self.password = password
 
     def as_client_dict(self):
         return {
-            "security.protocol": self.security_protocol,
-            "sasl.mechanisms": self.mechanism,
+            "security.protocol": 'SASL_SSL',
+            "sasl.mechanisms": 'PLAIN',
             "sasl.username": self.username,
             "sasl.password": self.password,
         }
@@ -21,8 +19,6 @@ class SaslPlainClientConfig(KafkaConfigBase):
 
 class SaslOauthClientConfig(KafkaConfigBase):
     def __init__(self, username, password, url, scope):
-        self.security_protocol = 'sasl_ssl'
-        self.mechanism = 'OUATHBEARER'
         self.username = username
         self.password = password
         self.url = url

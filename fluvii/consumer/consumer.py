@@ -10,7 +10,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Consumer:
-    def __init__(self, urls, group_id, consume_topics_list, schema_registry=None, auto_subscribe=True, client_auth_config=None, settings_config=None, metrics_manager=None):
+    def __init__(self, urls, group_id, consume_topics_list, schema_registry=None, auto_subscribe=True, client_auth_config=None, settings_config=None, metrics_manager=None, consumer_cls=DeserializingConsumer):
         self._urls = ','.join(urls) if isinstance(urls, list) else urls
         self._auth = client_auth_config
         self._settings = settings_config
@@ -18,11 +18,12 @@ class Consumer:
         self._group_id = group_id
         self._topic_metadata = None
         self._schema_registry = schema_registry
+        self._consumer_cls = consumer_cls
 
         self.message = None
         self.metrics_manager = metrics_manager
         self.topics = consume_topics_list if isinstance(consume_topics_list, list) else consume_topics_list.split(',')
-        self._poll_timeout = self._settings.poll_timeout_secs if self._settings else 5
+        self._poll_timeout = self._settings.poll_timeout_seconds if self._settings else 5
 
         self._init_consumer(auto_subscribe=auto_subscribe)
 
@@ -66,7 +67,7 @@ class Consumer:
 
     def _init_consumer(self, auto_subscribe=True):
         LOGGER.info('Initializing Consumer...')
-        self._consumer = DeserializingConsumer(self._make_config())
+        self._consumer = self._consumer_cls(self._make_config())
         LOGGER.info('Consumer Initialized!')
         if auto_subscribe:
             self._consumer.subscribe(topics=self.topics)
@@ -130,22 +131,14 @@ class Consumer:
 class TransactionalConsumer(Consumer):
     def __init__(self, urls, group_id, consume_topics_list, schema_registry=None, auto_subscribe=True,
                  client_auth_config=None, settings_config=None, metrics_manager=None,
-                 batch_consume_max_time_seconds=None, batch_consume_max_count=None, batch_consume_store_messages=None):
+                 ):
         super().__init__(urls, group_id, consume_topics_list, schema_registry=schema_registry, auto_subscribe=auto_subscribe,
                          client_auth_config=client_auth_config, settings_config=settings_config, metrics_manager=metrics_manager)
-
-        # batch consuming
-        if not batch_consume_max_time_seconds:
-            batch_consume_max_time_seconds = self._settings.batch_consume_max_time_secs
-        if not batch_consume_max_count:
-            batch_consume_max_count = self._settings.batch_consume_max_count
-        if not batch_consume_store_messages:
-            batch_consume_store_messages = self._settings.batch_consume_store_messages
         self._batch_time_elapse_start = None
-        self._consume_max_time_secs = batch_consume_max_time_seconds
-        self._consume_max_count = batch_consume_max_count
+        self._consume_max_time_secs = self._settings.batch_consume_max_time_seconds
+        self._consume_max_count = self._settings.batch_consume_max_count
         self._consume_max_empty_polls = self._settings.batch_consume_max_empty_polls
-        self._store_batch_messages = batch_consume_store_messages
+        self._store_batch_messages = self._settings.batch_consume_store_messages
         self._init_attrs()
         self._reset_keep_consuming_trackers()
 

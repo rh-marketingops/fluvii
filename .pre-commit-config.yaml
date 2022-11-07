@@ -23,3 +23,13 @@ repos:
     - id: python-use-type-annotations
     - id: rst-directive-colons
     - id: rst-inline-touching-normal
+- repo: local
+  hooks:
+    - id: pytest
+      name: pytest
+      description: Run pytest tests
+      entry: tox -e py38
+      files: ^(fluvii|tests/unit)/.*\.py$
+      language: system
+      pass_filenames: false
+      types: [python]

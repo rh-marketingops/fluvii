@@ -13,6 +13,7 @@ install_requires = [
 dev_requires = install_requires + [
     "black",
     "pip-tools",
+    "pre-commit",
     "pytest",
     "pytest-cov",
     "sphinx",

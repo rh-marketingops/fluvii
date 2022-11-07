@@ -185,7 +185,7 @@ class TransactionalConsumer(Consumer):
 
     def _get_consumer_partition_assignment(self):
         assignments = self._consumer.assignment()
-        assignments = {topic: [int(obj.partition) for obj in assignments if obj.topic == topic] for topic in set([obj.topic for obj in assignments])}
+        assignments = {topic: [int(obj.partition) for obj in assignments if obj.topic == topic] for topic in {obj.topic for obj in assignments}}
         return assignments
 
     def _commit(self, producer, offsets):

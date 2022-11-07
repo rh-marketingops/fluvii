@@ -38,15 +38,15 @@ Here's what to expect over the next 3-6 months (~H1 of 2023):
 
 _Fluvii_ is a Kafka client library built on top of [confluent-kafka-python](https://github.com/confluentinc/confluent-kafka-python).
 
-_Fluvii_ was originally written as a simpler alternative for the other popular Python client library [Faust](https://github.com/robinhood/faust). 
+_Fluvii_ was originally written as a simpler alternative for the other popular Python client library [Faust](https://github.com/robinhood/faust).
 
-Much like Faust, _Fluvii_ offers _similar_ functionality to the Kafka-Streams java client; 
+Much like Faust, _Fluvii_ offers _similar_ functionality to the Kafka-Streams java client;
 it's likely no surpise that "Fluvii" translates to "streams" in Latin!
 
 We designed _Fluvii_ after using Faust/Kafka extensively; we found that in most cases, we didn't
-need anything fancy to accomplish 95% of our work, which included Exactly Once Semantics (aka transactions) and simple tabling. 
+need anything fancy to accomplish 95% of our work, which included Exactly Once Semantics (aka transactions) and simple tabling.
 
-As such, we wanted an interface that required minimal interaction/repetition, 
+As such, we wanted an interface that required minimal interaction/repetition,
 yet offered the ability to easily extend it (or manually handle anything) when needed.
 
 **We also take full advantage of transactions by handling multiple consumed/produced messages at once per transaction,
@@ -74,7 +74,7 @@ All that being said, you might still choose Faust if:
 
 _Fluvii_ is still in its infancy, thus there are several aspects of it that lack extensibility.
 
-Right now, _Fluvii_ assumes/defaults to: 
+Right now, _Fluvii_ assumes/defaults to:
 
 - Using a schema-registry
 - Using avro schemas (see examples for format)
@@ -94,7 +94,7 @@ There are two primary ways to you'll probably use _Fluvii_:
 1. (most common) `FluviiApp` or `FluviiTableApp` (which might include extending).
 2. Using the `Producer` and `Consumer` classes for more basic use cases.
 
-Here's a breakdown of _Fluvii_, it's components, and how to use it.  
+Here's a breakdown of _Fluvii_, it's components, and how to use it.
 
 ## Understanding the Components
 
@@ -114,17 +114,17 @@ can simply use `FluviiApp` instead and get Exactly-Once guarantees with it.
 ### TransactionalProducer and TransactionalConsumer
 
 The `TransactionalProducer` and `TransactionalConsumer` classes are intended to help manage transactional
-state for their respective functions. 
+state for their respective functions.
 
-They _can_ be employed manually, but they were intended to be managed by the 
+They _can_ be employed manually, but they were intended to be managed by the
 `Transaction` class. As such, their usage is for far more advanced use-cases and not recommended.
 
 ### Transaction
 
 **`Transaction` is the object your application will interface with for producing and consuming when using a `FluviiApp`**.
 
-The `Transaction` class is meant to handle the interdependent state changes between the 
-`TransactionalProducer` and `TransactionalConsumer` classes. 
+The `Transaction` class is meant to handle the interdependent state changes between the
+`TransactionalProducer` and `TransactionalConsumer` classes.
 
 It is aptly named because the object is very much the equivalent of a Kafka transaction, and it gets recreated each time
 a new transaction is required.
@@ -133,7 +133,7 @@ Keep in mind: our transactions can include multiple consumed/produced messages!
 
 ### FluviiApp
 
-`FluviiApp` is basically your entrypoint. It handles configuration and all the context/state management. 
+`FluviiApp` is basically your entrypoint. It handles configuration and all the context/state management.
 
 You will configure it with desired settings (or just use the defaults!), hand it an application function to loop on, and call `run()`... and that will be the last of your interaction!
 
@@ -150,7 +150,7 @@ table recovery as needed.
 
 You'll typically use this if you need to keep track of certain records and compare them against incoming messages.
 
-**NOTE: You can only consume from 1 topic per `FluviiTableApp`. 
+**NOTE: You can only consume from 1 topic per `FluviiTableApp`.
 This was to keep the implementation simplier and more intuitive.**
 
 Usage does not differ much from the non-table variants.
@@ -161,7 +161,7 @@ Please see the **"Important Usage Information"** section for more insight around
 
 ### Initializing/running a bare-bones `FluviiApp`:
 
-Note: This example assumes you have set the few required config settings via environment variables. 
+Note: This example assumes you have set the few required config settings via environment variables.
 You can find a manual configuration example further below.
 
 There are two basic components you need to initialize an app at all:
@@ -208,9 +208,9 @@ def my_app_logic(transaction: Transaction, thing_inited_at_runtime):
     transaction.produce(
         {'value': cool_message_out, 'topic': 'cool_topic_out', 'key': msg.key(), 'headers': msg.headers()}
     )
-    
+
 fluvii_app = FluviiApp(
-    app_function=my_app_logic, 
+    app_function=my_app_logic,
     consume_topics_list=['test_topic_1', 'test_topic_2'],
     produce_topic_schema_dict={'cool_topic_out': a_cool_schema},
     app_function_arglist = [init_at_runtime_thing])  # optional! Here to show functionality.
@@ -237,10 +237,10 @@ Just make sure your message value isn't itself a dictionary with a "value" key i
 
 ### Using a table with a `FluviiTableApp`
 
-Using tabling via `FLuviiTableApp` is very simple. 
+Using tabling via `FLuviiTableApp` is very simple.
 
-Here is an example where we are consuming messages around purchases made by various account holders, 
-storing the new balance for later comparisons, and producing that remaining balance downstream (maybe to notify the account holder?). 
+Here is an example where we are consuming messages around purchases made by various account holders,
+storing the new balance for later comparisons, and producing that remaining balance downstream (maybe to notify the account holder?).
 
 `consumed message key` = account holder number
 
@@ -302,10 +302,10 @@ options to ensure proper use.
 
 ### Processing Guarantees
 
-ALl _FluviiApp_ iterations use transactions under the hood, which translates to Exactly Once Semantics. 
+ALl _FluviiApp_ iterations use transactions under the hood, which translates to Exactly Once Semantics.
 
 This is also true for the underlying tabling framework in _FluviiTableApp_, where the table is only written to
-after the changelog message is committed. If the app were to somehow crash before it's able to write to the 
+after the changelog message is committed. If the app were to somehow crash before it's able to write to the
 table, it will recover the missing writes from the changelog topic.
 
 
@@ -327,7 +327,7 @@ The first layer is caching table writes in the `TableTransaction` object until t
 with the batching that's happening).
 
 The second layer is stored on the `FluviiSqlite` object, which is what `TableTransaction` hands its writes off to. Table writes are stored
-here until the configured write cache count exceeds the maximum, in which they are truly committed to the `sqlite` database. 
+here until the configured write cache count exceeds the maximum, in which they are truly committed to the `sqlite` database.
 
 
 This was implemented for two related reasons, both around utilizing networked storage situations:
@@ -337,7 +337,7 @@ This was implemented for two related reasons, both around utilizing networked st
 
 ### _FluviiTableApp_ limitations
 
-To keep implementation around tabling simple, there were some design choices made that incurred 
+To keep implementation around tabling simple, there were some design choices made that incurred
 some limitations, most of which have fairly straightforward options for overcoming. Most of these are because of the complexities
 around topic partition assignments.
 
@@ -366,7 +366,7 @@ Let's take a look at the various config objects you can interact with.
 ### ProducerConfig and ConsumerConfig
 
 The `ProducerConfig` and `ConsumerConfig` objects will contain all configs around client settings,
-and any _Fluvii_-specific functionality surrounding them. 
+and any _Fluvii_-specific functionality surrounding them.
 
 They require a url list as an argument. They also accept an optional Auth config; see below.
 
@@ -408,7 +408,7 @@ everything else! It knows that when your `app_function` logic is finished, it sh
 to run it again, it knows it should consume a new message to operate on. It will similarly handle errors by
 aborting and retrying as needed.
 
-If you need more manual access to things, the `TransactionalConsumer`, `TransactionalProducer`, and the `FluviiApp` context is 
+If you need more manual access to things, the `TransactionalConsumer`, `TransactionalProducer`, and the `FluviiApp` context is
 passed to every transaction object, so you'll always have access to whatever objects you need should the need arise.
 
 You can also refresh the transaction object to re-use should it prove difficult to manage your logic

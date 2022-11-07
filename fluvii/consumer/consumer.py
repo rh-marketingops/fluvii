@@ -161,7 +161,7 @@ class TransactionalConsumer(Consumer):
         self._batch_offset_ends = {}
         self._messages = []
         self.message = None
-    
+
     def _set_batch_start_time(self):
         self._batch_time_elapse_start = datetime.datetime.now().timestamp()
 

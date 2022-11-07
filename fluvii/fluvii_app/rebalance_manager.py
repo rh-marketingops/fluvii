@@ -102,7 +102,7 @@ class TableRebalanceManager:
         self.consumer.resume([p._partition for p in partitions])
         for p in partitions:
             p.active = True
-            
+
     def _pause_all_changelog_partitions(self):
         LOGGER.debug('Pausing all active partitions')
         self.consumer.pause([p._partition for p in self._changelog_partitions if p.active])
@@ -114,7 +114,7 @@ class TableRebalanceManager:
         self.consumer.pause([p._partition for p in self._active_partitions])
         for p in self._active_partitions:
             p.active = False
-    
+
     def _init_table_dbs(self):
         for p in self._changelog_partitions:
             if not p.table_assigned:
@@ -163,14 +163,14 @@ class TableRebalanceManager:
     def _update_recovery_partition_table_offsets(self):
         for p in self.recovery_partitions:
             p.table_offset = self.tables[p.partition].offset
-            
+
     def _set_all_tables_to_latest_offset(self):
         for p in self._changelog_partitions:
             if p.table_offset < p.highwater:
                 LOGGER.debug(f'Setting table p{p.partition} to {p.highwater}')
                 self.tables[p.partition].set_offset(p.highwater)
                 self.tables[p.partition].commit()
-    
+
     def _close_tables(self, partitions=None):
         interrupt = None
         if not partitions:
@@ -195,7 +195,7 @@ class TableRebalanceManager:
         if interrupt:  # ensure all table cleanup happens
             LOGGER.info('Continuing with exception interrupt raised during table closing')
             raise interrupt
-    
+
     def assign_partitions(self, partition_obj_list):
         LOGGER.info(f'ASSIGNMENT called for: {partition_obj_list}')
         new_primary = [Partition(p_obj=p) for p in partition_obj_list]

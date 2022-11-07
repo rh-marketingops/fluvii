@@ -55,4 +55,3 @@ def log_and_raise_error(metrics_manager, error):
     metrics_manager.inc_message_errors(error)
     sleep(5)
     raise
-

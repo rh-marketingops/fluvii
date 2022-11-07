@@ -178,17 +178,17 @@ class TransactionalProducer(Producer):
         LOGGER.debug('Initializing a transaction...')
         self._producer.begin_transaction(*args, **kwargs)
         self.active_transaction = True
-    
+
     def produce(self, value, key=None, topic=None, headers=None, partition=None, message_passthrough=None):
         if not self.active_transaction:
             self.begin_transaction()
         super().produce(value, key=key, topic=topic, headers=headers, partition=partition, message_passthrough=message_passthrough)
-        
+
     def abort_transaction(self, *args, **kwargs):
         LOGGER.debug('Aborting the transaction...')
         self._producer.abort_transaction(*args, **kwargs)
         self.active_transaction = False
-        
+
     def commit_transaction(self, *args, **kwargs):
         self._producer.commit_transaction(*args, **kwargs)
         self._producer.poll(0)

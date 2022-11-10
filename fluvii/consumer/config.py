@@ -17,9 +17,9 @@ class ConsumerConfig(KafkaConfigBase, BaseSettings):
     batch_consume_max_time_seconds: Optional[int] = 10
     batch_consume_store_messages: bool = False
     heartbeat_timeout_ms: int = 4 * 60 // 2 * 1_000  # TODO document that this pairs with timeout_minutes
+    message_singleton_max_mb: int = 2
     message_batch_max_mb: int = 5
     message_queue_max_mb: int = 20
-    message_total_max_mb: int = 2
     poll_timeout_seconds: int = 5
     timeout_minutes: int = 4  # TODO document that this pairs with heartbeat_timeout_ms
 
@@ -31,10 +31,10 @@ class ConsumerConfig(KafkaConfigBase, BaseSettings):
         return {
             "auto.commit.interval.ms": self.auto_commit_interval_seconds * 1_000,
             "auto.offset.reset": self.auto_offset_reset,
-            "fetch.max.bytes": self.message_total_max_mb * (2 ** 20),
+            "fetch.max.bytes": self.message_batch_max_mb * (2 ** 20),
             "heartbeat.interval.ms": (self.heartbeat_timeout_ms // 5) - ms_tolerance,  # 5 failed heartbeats == bad consumer.
             "max.poll.interval.ms": self.timeout_minutes * 60_000,  # Max time between poll() calls before considered dead.
-            "message.max.bytes": self.message_batch_max_mb * (2 ** 20),
+            "message.max.bytes": self.message_singleton_max_mb * (2 ** 20),
             "queued.max.messages.kbytes": self.message_queue_max_mb * (2 ** 10),
             "session.timeout.ms": self.heartbeat_timeout_ms,  # need at least 1 heartbeat within "session" time to be considered alive;
         }

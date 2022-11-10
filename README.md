@@ -1,27 +1,34 @@
-### Disclaimer
+### Join us on Slack!
 
-_Fluvii_ is approaching a stable enough state that you can reliably test it out...maybe even run it in production
-with some low-stakes use cases!
+Feel free to join our [Fluvii Slack Community!](https://join.slack.com/t/fluvii/shared_invite/zt-1j9hjm7lh-iowP9Z9vE94HAzNmUBfbbQ)
 
-That being said, it's still in a transitional state, so don't be surprised if there are still some more organizational
-efforts underway!
+### State of Fluvii
 
-That being said, we don't envision the object methods and interface changing much, other than of course to
-add new features, which is more down the road.
+We feel _Fluvii_ is now stable enough that you can reliably test it out...maybe even run it in production
+with some low-stakes use cases if you're so brave! 
+
+Our team at Red Hat runs our production systems on it.
+
+That being said, it's still in a fairly transitional state with improvements across the board (focusing on stability
+first and foremost), so don't be surprised if there are still numerous under-the-hood
+refactors and improvements!
 
 On that note...
 
 ### Things in the Pipeline
 
+We don't envision the api of the library changing much barring feature additions, 
+which is more down the road. That being said, configuration is likely to be overhauled/streamlined in
+the near future.
+
+Here's what to expect over the next 3-6 months (~H1 of 2023):
+
 - Unit Tests
 - Better general documentation
-- More configuration options
-- Improved configuration structure
-- Contribution Guide
-- Fixing some more rare/minor rebalance bugs in the `FluviiTableApp`
+- Improved configuration options and structure
+- Contribution Guide and tooling
+- Continued stability improvements around rebalancing (specifically `FluviiTableApp`)
 - More usage examples in README
-
-We are dedicated to having these things by the end of 2022.
 
 # Installation
 

@@ -136,8 +136,7 @@ class Producer:
         self._producer.poll(0)
         self._producer.produce(**produce_dict)
         if self.metrics_manager:
-            self.metrics_manager.inc_messages_produced(1, produce_dict['topic'])
-        LOGGER.debug(f'Added message to the produce queue; GUID {produce_dict["headers"]["guid"]}')
+            self.metrics_manager.inc_metric('messages_produced', label_dict={'topic': produce_dict['topic']})
 
     def _confirm_produce(self, attempts=3, timeout=20):
         """

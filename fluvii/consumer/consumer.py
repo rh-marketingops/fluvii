@@ -89,15 +89,12 @@ class Consumer:
         """
         try:
             guid = get_guid_from_message(self.message)
-            if self.metrics_manager:
-                self.metrics_manager.set_seconds_behind(
-                    round(datetime.datetime.timestamp(datetime.datetime.utcnow())) - self.message.timestamp()[1] // 1000)
             if '__changelog' not in self.message.topic():
-                LOGGER.info(
-                    f"Message consumed from topic {self.message.topic()} partition {self.message.partition()}, offset {self.message.offset()}; GUID {guid}")
+                LOGGER.info(f"Message consumed from topic {self.message.topic()} partition {self.message.partition()}, offset {self.message.offset()}; GUID {guid}")
                 LOGGER.debug(f"Consumed message key: {repr(self.message.key())}")
                 if self.metrics_manager:
-                    self.metrics_manager.inc_messages_consumed(1, self.message.topic())
+                    self.metrics_manager.set_metric('seconds_behind', round(datetime.datetime.timestamp(datetime.datetime.utcnow())) - self.message.timestamp()[1] // 1000)
+                    self.metrics_manager.inc_metric('messages_consumed', label_dict={'topic': self.message.topic()})
         except AttributeError:
             if "object has no attribute 'headers'" in str(self.message.error()):
                 raise ConsumeMessageError("Headers were inaccessible on the message. Potentially a corrupt message?")

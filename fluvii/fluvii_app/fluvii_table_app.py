@@ -95,7 +95,6 @@ class FluviiTableApp(FluviiApp):
     def _finalize_recovery_batch(self):
         if self.transaction._pending_table_writes:
             self.transaction._table_write(recovery_multiplier=self._recovery_multiplier)  # relay transaction's cached writes to the table's write cache
-            self.transaction._recovery_commit()
             self._consumer._init_attrs()
         else:
             raise TransactionNotRequired

@@ -93,11 +93,11 @@ class FluviiTableApp(FluviiApp):
         self.transaction._update_table_entry_from_changelog()
 
     def _finalize_recovery_batch(self):
-        if self.transaction._pending_table_writes:
+        if not self.transaction.message:
+            raise TransactionNotRequired
+        else:
             self.transaction._table_write(recovery_multiplier=self._recovery_multiplier)  # relay transaction's cached writes to the table's write cache
             self._consumer._init_attrs()
-        else:
-            raise TransactionNotRequired
 
     def _table_recovery_consume_loop(self, checks):
         LOGGER.info(f'Consuming from changelog partitions: {[p.partition for p in self._rebalance_manager.recovery_partitions]}')

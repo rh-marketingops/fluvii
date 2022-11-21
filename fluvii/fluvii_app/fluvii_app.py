@@ -13,8 +13,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class FluviiApp:
-    def __init__(self, app_function, consume_topics_list, fluvii_config=None, produce_topic_schema_dict=None, transaction_cls=Transaction,
-                 app_function_arglist=None, metrics_manager=None):
+    def __init__(self, app_function, consume_topics_list, fluvii_config=None, produce_topic_schema_dict=None, app_function_arglist=None, metrics_manager=None,
+                 transaction_cls=Transaction, consumer_cls=TransactionalConsumer, producer_cls=TransactionalProducer):
         if not app_function_arglist:
             app_function_arglist = []
         if isinstance(consume_topics_list, str):
@@ -25,6 +25,8 @@ class FluviiApp:
         self._shutdown = False
         self._config = fluvii_config
         self._transaction_cls = transaction_cls
+        self._producer_cls = producer_cls
+        self._consumer_cls = consumer_cls
         self._app_function = app_function
         self._app_function_arglist = app_function_arglist
         self._produce_topic_schema_dict = produce_topic_schema_dict
@@ -64,7 +66,7 @@ class FluviiApp:
     def _set_producer(self, force_init=False):
         if (not self._producer) or force_init:
             LOGGER.debug('Setting up Kafka Transactional Producer')
-            self._producer = TransactionalProducer(
+            self._producer = self._producer_cls(
                 urls=self._config.client_urls,
                 client_auth_config=self._config.client_auth_config,
                 topic_schema_dict=self._produce_topic_schema_dict,
@@ -77,7 +79,7 @@ class FluviiApp:
 
     def _set_consumer(self, auto_subscribe=True):
         if not self._consumer:
-            self._consumer = TransactionalConsumer(
+            self._consumer = self._consumer_cls(
                 urls=self._config.client_urls,
                 client_auth_config=self._config.client_auth_config,
                 group_id=self._config.app_name,

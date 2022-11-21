@@ -134,7 +134,7 @@ class TableRebalanceManager:
             if p.table_offset < p.lowwater:
                 LOGGER.debug('Adjusting table offset due to it being lower than the changelog lowwater')
                 p.table_offset = p.lowwater - 2  # -2 since the table marks the latest offset it has (which can never be the "last" offset since it's a marker), not which offset is next (aka how kafka tracks it)
-        LOGGER.info(f'note: tables are considered "current" if highwater - table_offset <=2: {[(p.partition, p.table_offset, p.highwater) for p in self._changelog_partitions]}')
+        LOGGER.info(f'NOTE: tables are considered "current" if (highwater - table_offset) <= 2')
         LOGGER.info(f'(table, table offset, highwater) list : {[(p.partition, p.table_offset, p.highwater) for p in self._changelog_partitions]}')
 
     def _set_partition_recovery_statuses(self):

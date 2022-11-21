@@ -2,7 +2,7 @@ from confluent_kafka import KafkaException
 import logging
 from copy import deepcopy
 from fluvii.general_utils import parse_headers
-from fluvii.exceptions import GracefulTransactionFailure, FatalTransactionFailure, FailedAbort
+from fluvii.exceptions import GracefulTransactionFailure, FatalTransactionFailure, FailedAbort, TransactionTimeout
 from json import dumps, loads
 
 
@@ -11,14 +11,12 @@ LOGGER = logging.getLogger(__name__)
 
 def handle_kafka_exception(kafka_error):
     LOGGER.error(kafka_error)
-    LOGGER.error(kafka_error.args[0].code)
-    # if kafka_error.args[0].code == 'ILLEGAL GENERATION':
-    #     LOGGER.info('The consumer group generation id is invalid (likely due to a rebalance call), aborting transaction')
-    #     raise FatalTransactionFailure
+    LOGGER.error(f'KAFKA_ERROR_CODE: {kafka_error.args[0].code()}')
     retriable = kafka_error.args[0].retriable()
     abort = kafka_error.args[0].txn_requires_abort()
-    # TODO: take advantage of retriable
     LOGGER.info(f'KafkaException: is retriable? - {retriable}, should abort? - {abort}')
+    if kafka_error.args[0].code() == '_TIMED_OUT':  # TODO: try to handle this more gracefully; it's supposedly "retriable"
+        raise TransactionTimeout
     if retriable:
         raise GracefulTransactionFailure
     elif abort:
@@ -83,7 +81,7 @@ class Transaction:
             LOGGER.info('Aborting transaction.')
             self.producer.abort_transaction(10)
         except KafkaException as e:
-            LOGGER.info(f"Failed to abort transaction: {e}")
+            LOGGER.error(f"Failed to abort transaction: {e}")
             raise FailedAbort
 
     def abort_transaction(self):

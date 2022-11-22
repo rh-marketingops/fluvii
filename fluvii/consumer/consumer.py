@@ -19,6 +19,7 @@ class Consumer:
         self._topic_metadata = None
         self._schema_registry = schema_registry
         self._consumer_cls = consumer_cls
+        self._tz = datetime.datetime.utcnow().astimezone().tzinfo
 
         self.message = None
         self.metrics_manager = metrics_manager
@@ -148,8 +149,6 @@ class TransactionalConsumer(Consumer):
         if self._batch_consume:
             if self._consume_max_count and self._consume_message_count < self._consume_max_count:
                 self._batch_consume = False
-            else:
-
 
     def _reset_keep_consuming_trackers(self):
         self._refresh_batch_consume_status()
@@ -182,16 +181,19 @@ class TransactionalConsumer(Consumer):
 
     def _requires_batch_consuming(self):
         if not self._batch_consume:
-            delta = int(datetime.datetime.timestamp(datetime.datetime.utcnow())) - int(self.message.timestamp()[1])
+            ts_now = int(datetime.datetime.timestamp(datetime.datetime.now(tz=self._tz)))
+            msg_ts = int(self.message.timestamp()[1]*.001)
+            LOGGER.debug(f'Timestamps: now - {ts_now}, msg - {msg_ts}')
+            delta = ts_now - msg_ts
             LOGGER.debug(f'Message is {delta} seconds old')
             if delta > self._max_msg_secs_behind:
-                LOGGER.info(f"Message is at least {self._max_msg_secs_behind} minutes old. Switching to batch!")
+                LOGGER.info(f"Message is at least {self._max_msg_secs_behind} seconds old. Switching to batch mode!")
                 self._batch_consume = True
 
     def _keep_consuming(self, consume_multiplier=1):
         if self.message:  # if at least 1 message has already been consumed
             return self._batch_consume and self._batch_remaining_empty_polls and self._max_consume_count_continue(consume_multiplier=consume_multiplier) and self._max_consume_time_continue()
-        return True
+        return self._batch_remaining_empty_polls and self._max_consume_time_continue()
 
     def _mark_offset_start(self):
         if self.message.topic() not in self._batch_offset_starts:

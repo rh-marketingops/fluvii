@@ -19,11 +19,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class SchemaRegistry:
-    def __init__(self, url, auth_config=None):
+    def __init__(self, url, auth_config=None, auto_init=True):
         self.registry = None
         self.url = url
         self._auth = auth_config
-        self._init_registry()
+        if auto_init:
+            self._init_registry()
 
     def __getattr__(self, attr):
         """Note: this includes methods as well!"""

@@ -19,6 +19,7 @@ class Consumer:
         self._topic_metadata = None
         self._schema_registry = schema_registry
         self._consumer_cls = consumer_cls
+        self._tz = datetime.datetime.utcnow().astimezone().tzinfo
 
         self.message = None
         self.metrics_manager = metrics_manager
@@ -131,15 +132,26 @@ class TransactionalConsumer(Consumer):
                  ):
         super().__init__(urls, group_id, consume_topics_list, schema_registry=schema_registry, auto_subscribe=auto_subscribe,
                          client_auth_config=client_auth_config, settings_config=settings_config, metrics_manager=metrics_manager)
-        self._batch_time_elapse_start = None
         self._consume_max_time_secs = self._settings.batch_consume_max_time_seconds
         self._consume_max_count = self._settings.batch_consume_max_count
         self._consume_max_empty_polls = self._settings.batch_consume_max_empty_polls
         self._store_batch_messages = self._settings.batch_consume_store_messages
+        self._max_msg_secs_behind = self._settings.batch_consume_trigger_message_age_seconds
+        self._batch_consume = False
         self._init_attrs()
         self._reset_keep_consuming_trackers()
 
+    def _refresh_batch_consume_status(self):
+        """
+        This allows us to keep the consumer in a "batch" state until it reaches conditions where it likely no longer
+        needs to remain so
+        """
+        if self._batch_consume:
+            if self._consume_max_count and self._consume_message_count < self._consume_max_count:
+                self._batch_consume = False
+
     def _reset_keep_consuming_trackers(self):
+        self._refresh_batch_consume_status()
         self._batch_time_elapse_start = None
         self._batch_remaining_empty_polls = self._consume_max_empty_polls
         self._consume_message_count = 0
@@ -160,8 +172,6 @@ class TransactionalConsumer(Consumer):
                 self._set_batch_start_time()
             seconds_elapsed = datetime.datetime.now().timestamp() - self._batch_time_elapse_start
             continue_consume = seconds_elapsed < self._consume_max_time_secs
-            if not continue_consume:
-                self._batch_time_elapse_start = None
         return continue_consume
 
     def _max_consume_count_continue(self, consume_multiplier=1):
@@ -169,8 +179,21 @@ class TransactionalConsumer(Consumer):
             return self._consume_message_count < (self._consume_max_count * consume_multiplier)
         return True
 
+    def _requires_batch_consuming(self):
+        if not self._batch_consume:
+            ts_now = int(datetime.datetime.timestamp(datetime.datetime.now(tz=self._tz)))
+            msg_ts = int(self.message.timestamp()[1]*.001)
+            LOGGER.debug(f'Timestamps: now - {ts_now}, msg - {msg_ts}')
+            delta = ts_now - msg_ts
+            LOGGER.debug(f'Message is {delta} seconds old')
+            if delta > self._max_msg_secs_behind:
+                LOGGER.info(f"Message is at least {self._max_msg_secs_behind} seconds old. Switching to batch mode!")
+                self._batch_consume = True
+
     def _keep_consuming(self, consume_multiplier=1):
-        return self._batch_remaining_empty_polls and self._max_consume_count_continue(consume_multiplier=consume_multiplier) and self._max_consume_time_continue()
+        if self.message:  # if at least 1 message has already been consumed
+            return self._batch_consume and self._batch_remaining_empty_polls and self._max_consume_count_continue(consume_multiplier=consume_multiplier) and self._max_consume_time_continue()
+        return self._batch_remaining_empty_polls and self._max_consume_time_continue()
 
     def _mark_offset_start(self):
         if self.message.topic() not in self._batch_offset_starts:
@@ -214,6 +237,7 @@ class TransactionalConsumer(Consumer):
 
     def _handle_consumed_message(self):
         super()._handle_consumed_message()
+        self._requires_batch_consuming()
         self._mark_offset_start()
         self._mark_offset_end()
         self._consume_message_count += 1
@@ -255,7 +279,8 @@ class TransactionalConsumer(Consumer):
             try:
                 return super().consume(timeout=timeout)
             except NoMessageError:
-                self._batch_remaining_empty_polls -= 1
+                self._batch_remaining_empty_polls -= 1  # still useful in cases with multiple empty polls and no other consumption limitations
+                self._batch_consume = False
         LOGGER.info('Consumption attempts for this batch are finished.')
         self._reset_keep_consuming_trackers()
         raise FinishedTransactionBatch

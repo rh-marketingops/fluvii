@@ -10,24 +10,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class FluviiTableApp(FluviiApp):
-    def __init__(self, app_function, consume_topic, fluvii_config=None, produce_topic_schema_dict=None, transaction_cls=TableTransaction,
-                 app_function_arglist=None, metrics_manager=None, table_changelog_topic=None, table_recovery_multiplier=None):
-
-        super().__init__(
-            app_function, consume_topic, fluvii_config=fluvii_config, produce_topic_schema_dict=produce_topic_schema_dict,
-            transaction_cls=transaction_cls, app_function_arglist=app_function_arglist, metrics_manager=metrics_manager)
-
-        if not table_changelog_topic:
-            table_changelog_topic = self._config.table_changelog_topic
+    def __init__(self, app_function, consume_topic, transaction_cls=TableTransaction, **kwargs):
+        super().__init__(app_function, consume_topic, transaction_cls=transaction_cls, **kwargs)
         self.topic = consume_topic
-        self.changelog_topic = table_changelog_topic
         self.tables = {}
         self._rebalance_manager = None
-
-        # # Table recovery attributes
-        if not table_recovery_multiplier:
-            table_recovery_multiplier = self._config.table_recovery_multiplier
-        self._recovery_multiplier = table_recovery_multiplier
 
     # -------------------------  Protected Method Overrides ------------------------
     def _set_consumer(self):
@@ -61,6 +48,11 @@ class FluviiTableApp(FluviiApp):
         super()._app_shutdown()
 
     # ----------------------- Protected Method Extensions -----------------------
+
+    @property
+    def _recovery_multiplier(self):
+        return self._config.table_recovery_multiplier
+
     def _init_recovery_time_remaining_attrs(self):
         self._recovery_time_start = int(datetime.timestamp(datetime.now()))
         self._recovery_offsets_remaining = 0
@@ -151,3 +143,7 @@ class FluviiTableApp(FluviiApp):
     def commit_tables(self):
         for table in self.tables.values():
             table.commit()
+
+    @property
+    def changelog_topic(self):
+        return self._config.table_changelog_topic

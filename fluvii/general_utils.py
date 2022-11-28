@@ -52,6 +52,6 @@ def log_and_raise_error(metrics_manager, error):
     """
     Since the metric manager pushing is a separate thread, ensure an exception gets sent to prometheus
     """
-    metrics_manager.inc_metric('message_errors', {'exception': error})
+    metrics_manager.inc_metric('message_errors', label_dict={'exception': error})
     sleep(5)
     raise

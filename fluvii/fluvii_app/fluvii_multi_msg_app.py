@@ -16,5 +16,6 @@ class FluviiMultiMessageApp(FluviiApp):
 
     def _finalize_app_batch(self):
         # Do it at the end of consuming instead!
-        self._app_function(self.transaction, *self._app_function_arglist)
+        if self.transaction.messages():
+            self._app_function(self.transaction, *self._app_function_arglist)
         super()._finalize_app_batch()

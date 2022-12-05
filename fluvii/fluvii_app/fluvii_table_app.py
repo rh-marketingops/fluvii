@@ -100,6 +100,7 @@ class FluviiTableApp(FluviiApp):
                 try:
                     self._handle_recovery_message()
                 except FinishedTransactionBatch:
+                    self._producer.poll(0)
                     self._finalize_recovery_batch()
                     raise TransactionCommitted
         except TransactionCommitted:

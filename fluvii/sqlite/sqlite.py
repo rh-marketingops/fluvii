@@ -1,6 +1,9 @@
+import os
+
 from sqlitedict import SqliteDict
+from sqlite3 import DatabaseError
 from pathlib import Path
-from os import makedirs
+from os import makedirs, listdir, remove
 import json
 from copy import deepcopy
 import logging
@@ -30,6 +33,7 @@ class SqliteFluvii:
         if not table_path:
             table_path = fluvii_config.table_folder_path
         makedirs(table_path, exist_ok=True)
+        self.db_folder = Path(f"{table_path}").absolute()
         self.full_db_path = Path(f"{table_path}/{table_name}.sqlite").absolute()
 
         if auto_init:
@@ -49,7 +53,7 @@ class SqliteFluvii:
         LOGGER.debug(f'initing table {self.table_name}')
         db = SqliteDict(self.full_db_path.as_posix(), tablename='fluvii', autocommit=False, journal_mode="WAL")
         self.db = db
-        sleep(.1)
+        sleep(.2)
         self.db['init'] = 'init'
         self.db.commit()  # confirms db is actually fully init-ed by doing this superfluous commit
         LOGGER.info(f'table {self.table_name} initialized')
@@ -88,17 +92,29 @@ class SqliteFluvii:
         self.db_cache = {d: self.db_cache[d] for idx, d in enumerate(self.db_cache) if idx > remove_count}
 
     def commit(self):
-        if self.write_cache:
-            LOGGER.info(f'committing {len(self.write_cache)} records in table {self.table_name} write cache')
-            for key, value in self.write_cache.items():
-                if key != '-DELETED-':
-                    self.db[key] = json.dumps(value)
-                else:
-                    del self.db[key]
-        self.db['offset'] = str(self.offset)
-        self.db.commit()
-        self.db_cache.update(self.write_cache)
-        self.write_cache = {}
+        try:
+            if self.write_cache:
+                LOGGER.info(f'committing {len(self.write_cache)} records in table {self.table_name} write cache')
+                for key, value in self.write_cache.items():
+                    if key != '-DELETED-':
+                        self.db[key] = json.dumps(value)
+                    else:
+                        del self.db[key]
+            self.db['offset'] = str(self.offset)
+            self.db.commit()
+            self.db_cache.update(self.write_cache)
+            self.write_cache = {}
+        except DatabaseError as e:
+            if [arg for arg in e.args if 'malformed' in arg]:
+                LOGGER.error(f'Database {self.table_name} is corrupt; deleting all related files and terminating application '
+                             f'so the db will rebuild via restart')
+                delete_files = [self.db_folder / f for f in os.listdir(self.db_folder.as_posix()) if f.startswith(f'{self.table_name}.sqlite')]
+                LOGGER.info(f'Deleting the following files: {delete_files}')
+                for f in delete_files:
+                    os.remove(f.as_posix())
+                    sleep(.2)
+                LOGGER.info('File deletion complete; re-raising error')
+            raise
 
     def _confirm_previous_read_in_cache(self):
         """

@@ -1,24 +1,30 @@
+import os
+
 from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry.avro import AvroSerializer
-from fluvii.general_utils import parse_headers, Admin
+from confluent_kafka.avro import load as avro_load
+from fluvii.general_utils import parse_headers
 from fluvii.exceptions import ProducerTimeoutFailure
+from .config import ProducerConfig
 import json
 import mmh3
 import uuid
 import logging
+import importlib
+import importlib.util
+import sys
 
 LOGGER = logging.getLogger(__name__)
 
 
 class Producer:
-    def __init__(self, urls, schema_registry=None, topic_schema_dict=None, metrics_manager=None, client_auth_config=None, settings_config=None):
+    def __init__(self, urls, schema_registry=None, topic_schema_dict=None, metrics_manager=None, client_auth_config=None, settings_config=ProducerConfig()):
         self._urls = ','.join(urls) if isinstance(urls, list) else urls
         self._auth = client_auth_config
         self._settings = settings_config
         self._producer = None
         self._topic_partition_metadata = {}
         self._schema_registry = schema_registry
-        self._admin = None
 
         self.topic_schemas = {}
         self.metrics_manager = metrics_manager
@@ -62,8 +68,7 @@ class Producer:
             "value.serializer": lambda: None,
         }
 
-        if self._settings:
-            settings.update(self._settings.as_client_dict())
+        settings.update(self._settings.as_client_dict())
         if self._auth:
             settings.update(self._auth.as_client_dict())
         return settings
@@ -92,8 +97,52 @@ class Producer:
     def _generate_guid(self):
         return str(uuid.uuid1())
 
+    def _import_schema_library_from_fp(self):
+        print('Importing schema library from fp')
+        schema_library_name = self._settings.schema_library_root.split("/")[-1]
+        library_root = self._settings.schema_library_root
+        if '__init__' in schema_library_name:
+            schema_library_name = self._settings.schema_library_root.split("/")[-2]
+        else:
+            if [_ for _ in os.listdir(self._settings.schema_library_root) if _ == '__init__.py']:
+                library_root = f'{library_root}/__init__.py'  # spec requires a file, not a folder
+        if schema_library_name not in sys.modules.keys():
+            spec = importlib.util.spec_from_file_location(schema_library_name, library_root)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[schema_library_name] = module
+            spec.loader.exec_module(module)
+
+    def _import_schema_from_library(self, schema_str):
+        print(f'Importing schema from library path {schema_str}')
+        components = schema_str.split(".")
+        module = importlib.import_module(".".join(components[:-1]))
+        return getattr(module, components[-1])
+
+    def _load_schema_from_str(self, schema_str):
+        if schema_str.endswith(('.avro', '.json')):
+            try:
+                return avro_load(schema_str).to_json()
+            except Exception as e:
+                print(e)
+        if self._settings.schema_library_root:
+            if schema_str.endswith(('.avro', '.json')):
+                try:
+                    return avro_load('/'.join([self._settings.schema_library_root, schema_str])).to_json()
+                except Exception as e:
+                    print(e)
+            try:
+                self._import_schema_library_from_fp()
+                return self._import_schema_from_library(schema_str)
+            except Exception as e:
+                print(e)
+        return json.loads(schema_str)
+
     def _add_serializer(self, topic, schema):
         LOGGER.info(f'Adding serializer for producer topic {topic}')
+        print(topic, type(topic))
+        print(schema, type(schema))
+        if isinstance(schema, str):
+            schema = self._load_schema_from_str(schema)
         self.topic_schemas.update({topic: AvroSerializer(self._schema_registry, json.dumps(schema))})
 
     def add_topic(self, topic, schema, overwrite=False):

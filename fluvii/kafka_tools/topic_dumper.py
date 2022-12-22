@@ -20,6 +20,7 @@ class TopicDumperApp(FluviiMultiMessageApp):
         super()._set_config()
         self._config.consumer_config.batch_consume_max_count = None
         self._config.consumer_config.batch_consume_max_time_seconds = None
+        self._config.consumer_config.auto_offset_reset = 'earliest'
 
     def _init_metrics_manager(self):
         pass
@@ -42,14 +43,10 @@ class TopicDumperApp(FluviiMultiMessageApp):
 
     def _seek_consumer_to_offsets(self):
         LOGGER.info('Setting up consumer to pull from the beginning of the topics...')
-        partitions = self._get_partition_assignment()
-        for partition in partitions:
-            p = partition.partition
-            topic = partition.topic
-            if p not in self._consume_topics_dict[topic]:
-                self._consume_topics_dict[topic][p] = self._consumer.get_watermark_offsets(partition)[0]
+        self._get_partition_assignment()  # mostly just to ensure we can seek
         for topic, partitions in self._consume_topics_dict.items():
             for p, offset in partitions.items():
+                partition = TopicPartition(topic=topic, partition=p, offset=offset)
                 watermarks = self._consumer.get_watermark_offsets(partition)
                 if offset == 'earliest':
                     offset = watermarks[0]
@@ -58,7 +55,7 @@ class TopicDumperApp(FluviiMultiMessageApp):
                 elif offset < watermarks[0]:
                     offset = watermarks[0]
                 LOGGER.debug(f'Seeking {topic} p{p} to offset {offset}')
-                self._consumer.seek(TopicPartition(topic=topic, partition=p, offset=offset))
+                self._consumer.seek(partition)
 
     def _finalize_app_batch(self):
         if self._app_function:
@@ -75,7 +72,7 @@ class TopicDumperApp(FluviiMultiMessageApp):
         super()._runtime_init()
         self._seek_consumer_to_offsets()
 
-    def run(self, consumer_offset_dict=None, **kwargs):
+    def run(self, **kwargs):
         try:
             super().run(**kwargs)
         finally:

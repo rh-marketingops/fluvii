@@ -4,7 +4,7 @@ from fluvii.fluvii_app import FluviiConfig
 from fluvii.auth import SaslPlainClientConfig
 from fluvii.schema_registry import SchemaRegistry
 from confluent_kafka.admin import NewTopic, ConfigResource
-from fluvii.utilities.topic_dumper import TopicDumperApp
+from fluvii.kafka_tools.topic_dumper import TopicDumperApp
 import logging
 
 
@@ -25,18 +25,21 @@ class FluviiToolbox:
             admin_auth = SaslPlainClientConfig(username=admin_auth.username, password=admin_auth.password)
         self.admin = Admin(self._config.client_urls, admin_auth)
 
-    def list_topics(self, valid_only=True):
+    def list_topics(self, valid_only=True, include_configs=False):
         def _valid(topic):
             if valid_only:
                 return not topic.startswith('__') and 'schema' not in topic
             return True
-        return sorted([t for t in self.admin.list_topics().topics if _valid(t)])
+        topics = sorted([t for t in self.admin.list_topics().topics if _valid(t)])
+        if include_configs:
+            futures_dict = self.admin.describe_configs([ConfigResource(2, topic) for topic in topics])
+            topics = {config_resource.name: {c.name: c.value for c in configs.result().values()} for config_resource, configs in futures_dict.items()}
+        return topics
 
     def create_topics(self, topic_config_dict, ignore_existing_topics=True):
         """
         {'topic_a': {'partitions': 1, 'replication_factor': 1, 'segment.ms': 10000}, 'topic_b': {etc}},
         """
-        existing = []
         if ignore_existing_topics:
             existing = set(self.list_topics())
             remove = set(topic_config_dict.keys()) & existing
@@ -61,16 +64,20 @@ class FluviiToolbox:
         {'topic_a': {'partitions': 1, 'replication_factor': 1, 'segment.ms': 10000}, 'topic_b': {etc}}
         """
         current_configs = {}
+        if retain_configs:
+            current_configs = self.list_topics(include_configs=True)
+            for topic in current_configs.items():
+                current_configs[topic] = {k: v for k, v in current_configs[topic].items() if k not in protected_configs}
+            topics = current_configs.keys()
+        else:
+            topics = self.list_topics()
         if ignore_missing_topics:
-            existing = set(self.list_topics())
+            existing = set(topics)
             missing = set(topic_config_dict.keys()) - existing
             if missing:
                 LOGGER.info(f'These topics dont exist, ignoring: {missing}')
                 for i in missing:
                     topic_config_dict.pop(i)
-        if retain_configs:
-            futures_dict = self.admin.describe_configs([ConfigResource(2, topic) for topic in topic_config_dict])
-            current_configs = {config_resource.name: {c.name: c.value for c in configs.result().values() if c.name not in protected_configs} for config_resource, configs in futures_dict.items()}
         for topic in topic_config_dict:
             current_configs[topic].update(topic_config_dict[topic])
             topic_config_dict[topic] = current_configs[topic]
@@ -93,7 +100,7 @@ class FluviiToolbox:
                 futures[topic].result()
         LOGGER.info(f'Deleted topics: {topics}')
 
-    def produce_messages(self, topic_schema_dict, message_list):
+    def produce_messages(self, topic_schema_dict, message_list, topic_override=None):
         producer = Producer(
             urls=self._config.client_urls,
             client_auth_config=self._config.client_auth_config,
@@ -102,7 +109,12 @@ class FluviiToolbox:
         )
         LOGGER.info('Producing messages...')
         poll = 0
+        if topic_override:
+            LOGGER.info(f'A topic override was passed; ignoring the topic provided in each message body and using topic {topic_override} instead')
+            for msg in message_list:
+                msg['topic'] = topic_override
         for message in message_list:
+            message = {k: message.get(k) for k in ['key', 'value', 'headers', 'topic']}
             producer.produce(message.pop('value'), **message)
             poll += 1
             if poll >= 1000:

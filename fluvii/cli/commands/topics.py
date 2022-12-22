@@ -1,6 +1,7 @@
 import click
 from .base import fluvii_cli
-from fluvii.utilities import FluviiToolbox
+from fluvii.kafka_tools import FluviiToolbox
+from fluvii.general_utils import parse_headers
 import json
 
 
@@ -52,7 +53,10 @@ def delete_topics(topic_config_dict, topic_list):
 @click.option("--output-filepath", type=click.File("w"), required=True)
 def consume_topics(topic_offset_dict, output_filepath):
     def transform(transaction):
-        return [{k: msg.__getattr__(k) for k in ['key', 'value', 'headers', 'topic', 'partition', 'offset', 'timestamp']} for msg in transaction.messages()]
+        msgs = [{k: msg.__getattribute__(k)() for k in ['key', 'value', 'headers', 'topic', 'partition', 'offset', 'timestamp']} for msg in transaction.messages()]
+        for msg in msgs:
+            msg['headers'] = parse_headers(msg['headers'])
+        return msgs
     topic_offset_dict = json.loads(topic_offset_dict)
     messages = FluviiToolbox().consume_messages(topic_offset_dict, transform)
     click.echo('Messages finished consuming, now outputting to file...')
@@ -62,8 +66,10 @@ def consume_topics(topic_offset_dict, output_filepath):
 @topics_group.command(name="produce")
 @click.option("--topic-schema-dict", type=str, required=True)
 @click.option("--input-filepath", type=click.File("r"), required=True)
-def produce_message(topic_schema_dict, input_filepath):
+@click.option("--topic-override", type=str, required=False)
+def produce_message(topic_schema_dict, input_filepath, topic_override):
     FluviiToolbox().produce_messages(
         json.loads(topic_schema_dict),
         json.loads(input_filepath.read()),
+        topic_override
     )

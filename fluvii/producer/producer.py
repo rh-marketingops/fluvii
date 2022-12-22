@@ -98,7 +98,7 @@ class Producer:
         return str(uuid.uuid1())
 
     def _import_schema_library_from_fp(self):
-        print('Importing schema library from fp')
+        LOGGER.debug('Importing schema library from fp')
         schema_library_name = self._settings.schema_library_root.split("/")[-1]
         library_root = self._settings.schema_library_root
         if '__init__' in schema_library_name:
@@ -113,34 +113,33 @@ class Producer:
             spec.loader.exec_module(module)
 
     def _import_schema_from_library(self, schema_str):
-        print(f'Importing schema from library path {schema_str}')
+        LOGGER.debug(f'Importing schema from library path {schema_str}')
         components = schema_str.split(".")
         module = importlib.import_module(".".join(components[:-1]))
         return getattr(module, components[-1])
 
     def _load_schema_from_str(self, schema_str):
+        LOGGER.debug(f'Loading schema from string {schema_str}')
         if schema_str.endswith(('.avro', '.json')):
             try:
                 return avro_load(schema_str).to_json()
-            except Exception as e:
-                print(e)
+            except:
+                pass
         if self._settings.schema_library_root:
             if schema_str.endswith(('.avro', '.json')):
                 try:
                     return avro_load('/'.join([self._settings.schema_library_root, schema_str])).to_json()
-                except Exception as e:
-                    print(e)
+                except:
+                    pass
             try:
                 self._import_schema_library_from_fp()
                 return self._import_schema_from_library(schema_str)
-            except Exception as e:
-                print(e)
+            except:
+                pass
         return json.loads(schema_str)
 
     def _add_serializer(self, topic, schema):
         LOGGER.info(f'Adding serializer for producer topic {topic}')
-        print(topic, type(topic))
-        print(schema, type(schema))
         if isinstance(schema, str):
             schema = self._load_schema_from_str(schema)
         self.topic_schemas.update({topic: AvroSerializer(self._schema_registry, json.dumps(schema))})

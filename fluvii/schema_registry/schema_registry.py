@@ -1,5 +1,5 @@
 from confluent_kafka.schema_registry import SchemaRegistryClient
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 
 # fixes a bug in confluent-kafka TODO: keep a look out for this in >1.8.2, should be fixed since I took it from a MR.
@@ -36,15 +36,17 @@ class SchemaRegistry:
     def _init_registry(self):
         url = urlparse(self.url)
         if self._auth:
-            auth = f"{self._auth.username}:{self._auth.password}@"
+            auth = f"{quote(self._auth.username)}:{quote(self._auth.password)}@"
         else:
             auth = ''
         scheme = url.scheme
-        if not scheme:
-            if auth:
-                scheme = 'https://'
+        if scheme:
+            url = url._replace(path=url.netloc, netloc='')
+        else:
+            if self._auth:
+                scheme = 'https'
             else:
-                scheme = 'http://'
-            url = url._replace(scheme='')
-        self.registry = SchemaRegistryClient({'url': f'{scheme}{auth}{url.geturl()}'})
+                scheme = 'http'
+        url = url._replace(scheme='')
+        self.registry = SchemaRegistryClient({'url': f'{scheme}://{auth}{url.geturl()}'})
         LOGGER.info('Registry client initialized successfully!')

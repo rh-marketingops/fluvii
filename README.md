@@ -32,7 +32,7 @@ Here's what to expect over the next 3-6 months (~H1 of 2023):
 
 # Installation
 
-`pip intall fluvii`
+`pip install fluvii`
 
 # What is _Fluvii_?
 

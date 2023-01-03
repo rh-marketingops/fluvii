@@ -10,6 +10,12 @@ def topics_group():
     pass
 
 
+@topics_group.command(name="list")
+@click.option("--include-configs", is_flag=True)
+def list_topics(include_configs):
+    json.dumps(FluviiToolbox().list_topics(include_configs=include_configs), indent=4)
+
+
 @topics_group.command(name="create")
 @click.option("--topic-config-dict", type=str, required=False)
 @click.option("--topic-list", type=str, required=False)

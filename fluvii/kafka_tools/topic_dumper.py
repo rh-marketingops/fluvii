@@ -46,13 +46,13 @@ class TopicDumperApp(FluviiMultiMessageApp):
         self._get_partition_assignment()  # mostly just to ensure we can seek
         for topic, partitions in self._consume_topics_dict.items():
             for p, offset in partitions.items():
-                partition = TopicPartition(topic=topic, partition=p, offset=offset)
+                partition = TopicPartition(topic=topic, partition=int(p), offset=offset)
                 watermarks = self._consumer.get_watermark_offsets(partition)
                 if offset == 'earliest':
                     offset = watermarks[0]
                 elif offset == 'latest':
                     offset = watermarks[1]
-                elif offset < watermarks[0]:
+                elif int(offset) < watermarks[0]:
                     offset = watermarks[0]
                 LOGGER.debug(f'Seeking {topic} p{p} to offset {offset}')
                 self._consumer.seek(partition)

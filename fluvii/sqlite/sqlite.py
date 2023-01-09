@@ -14,20 +14,16 @@ LOGGER = logging.getLogger(__name__)
 
 # TODO: make a non-fluvii version for just reading tables like a typical client
 class SqliteFluvii:
-    def __init__(self, table_name, fluvii_config, table_path=None, auto_init=True, max_pending_writes_count=None, min_cache_count=None, max_cache_count=None):
-        if not max_pending_writes_count:
-            max_pending_writes_count = fluvii_config.consumer_config.batch_consume_max_count * 5
-        if not min_cache_count:
-            min_cache_count = fluvii_config.consumer_config.batch_consume_max_count * 20
-        if not max_cache_count:
-            max_cache_count = fluvii_config.consumer_config.batch_consume_max_count * 50
-        self._max_pending_writes_count = max_pending_writes_count
-        self._min_cache_count = min_cache_count
-        self._max_cache_count = max_cache_count
+    def __init__(self, table_name, fluvii_config, table_path=None, auto_init=True, allow_commits=False):
+        self._allow_commits = allow_commits
+        self._max_pending_writes_count = fluvii_config.consumer_config.batch_consume_max_count * 5
+        self._min_cache_count = fluvii_config.consumer_config.batch_consume_max_count * 20
+        self._max_cache_count = fluvii_config.consumer_config.batch_consume_max_count * 50
         self.db = None
         self.table_name = table_name
         self.db_cache = {}
         self.offset = None
+        # self.cancelled_offset_count = 0
         self.write_cache = {}
         self._current_read = (None, '')
         if not table_path:
@@ -54,8 +50,9 @@ class SqliteFluvii:
         db = SqliteDict(self.full_db_path.as_posix(), tablename='fluvii', autocommit=False, journal_mode="WAL")
         self.db = db
         sleep(.2)
-        self.db['init'] = 'init'
-        self.db.commit()  # confirms db is actually fully init-ed by doing this superfluous commit
+        if self._allow_commits:
+            self.db['init'] = 'init'
+            self.db.commit()  # confirms db is actually fully init-ed by doing this superfluous commit
         LOGGER.info(f'table {self.table_name} initialized')
 
     def write(self, key, value):
@@ -92,6 +89,8 @@ class SqliteFluvii:
         self.db_cache = {d: self.db_cache[d] for idx, d in enumerate(self.db_cache) if idx > remove_count}
 
     def commit(self):
+        if not self._allow_commits:
+            raise Exception('This client instance is read-only. Re-init with "allow_commits=True" to enable commits')
         try:
             if self.write_cache:
                 LOGGER.info(f'committing {len(self.write_cache)} records in table {self.table_name} write cache')

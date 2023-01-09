@@ -8,6 +8,7 @@ class ProducerConfig(KafkaConfigBase):
     """
     def __init__(self):
         self.transaction_timeout_mins = int(environ.get('FLUVII_TRANSACTION_TIMEOUT_MINUTES', '1'))
+        self.schema_library_root = environ.get('FLUVII_SCHEMA_LIBRARY_ROOT', '')
 
     def as_client_dict(self):
         return {

@@ -49,10 +49,12 @@ class TablePartition(Partition):
 
     @property
     def needs_recovery(self):
-        # note: >2 is because: +1 due to table tracking "current" offset, and +1 due to last offset being a transaction marker
+        # note: >2 is because: 1 due to next-to-last offset being a transaction marker, +1 due last offset being the "next" offset to be read,
         has_consumable_offets = self.lowwater != self.highwater
         table_is_behind = self.recovery_offset_delta > 2
-        LOGGER.debug(f'table {self.partition}: has consumable offsets? {has_consumable_offets}; table is behind? {table_is_behind}')
+        LOGGER.debug(f'table p{self.partition}: has consumable offsets? {has_consumable_offets}; table is behind? {table_is_behind}')
+        if table_is_behind:
+            LOGGER.debug(f'table p{self.partition}: table offset {self.table_offset}; highwater {self.highwater}')
         return has_consumable_offets and table_is_behind
 
     @property
@@ -116,7 +118,7 @@ class TableRebalanceManager:
     def _init_table_dbs(self):
         for p in self._changelog_partitions:
             if not p.table_assigned:
-                self.tables[p.partition] = SqliteFluvii(f'p{p.partition}', self._config)
+                self.tables[p.partition] = SqliteFluvii(f'p{p.partition}', self._config, allow_commits=True)
                 p.table_assigned = True
 
     def _init_recovery_time_remaining_attrs(self):
@@ -133,8 +135,7 @@ class TableRebalanceManager:
             p.table_offset = self.tables[p.partition].offset
             if p.table_offset < p.lowwater:
                 LOGGER.debug('Adjusting table offset due to it being lower than the changelog lowwater')
-                p.table_offset = p.lowwater - 2  # -2 since the table marks the latest offset it has (which can never be the "last" offset since it's a marker), not which offset is next (aka how kafka tracks it)
-        LOGGER.info(f'NOTE: tables are considered "current" if (highwater - table_offset) <= 2')
+                p.table_offset = p.lowwater
         LOGGER.info(f'(table, table offset, highwater) list : {[(p.partition, p.table_offset, p.highwater) for p in self._changelog_partitions]}')
 
     def _set_partition_recovery_statuses(self):
@@ -166,8 +167,8 @@ class TableRebalanceManager:
     def _set_all_tables_to_latest_offset(self):
         for p in self._changelog_partitions:
             if p.table_offset < p.highwater:
-                LOGGER.debug(f'Setting table p{p.partition} to {p.highwater-2} (highwater-2) to mark as fully recovered')
-                self.tables[p.partition].set_offset(p.highwater - 2)
+                LOGGER.debug(f'Setting table p{p.partition} to {p.highwater}')
+                self.tables[p.partition].set_offset(p.highwater)
                 self.tables[p.partition].commit()
     
     def _close_tables(self, partitions=None):

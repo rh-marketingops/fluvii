@@ -137,6 +137,19 @@ class TableTransaction(Transaction):
         value = int(value) if value else 0
         return value + self._pending_table_offset_increase.get(partition, 0)
 
+    def _abort_transaction(self):
+        """
+        We wanna account for all offsets put on the topic, even if they wont be marked as readable/successful
+        NOTE: This addition isn't neccesarily required for things to function correctly, but it will help make the app
+        recovery more accurate (aka reducing unneccesary recoveries).
+        """
+        if self._is_not_changelog_message:
+            for p, msgs in self._pending_table_writes.items():
+                if msgs:
+                    LOGGER.debug(f'Raising table offset for p{p} by {self._pending_table_offset_increase.get(p, 0)}')
+                    self.tables[p].set_offset(self._table_offset(partition=p))
+        super()._abort_transaction()
+
     def _update_pending_table_writes(self, value):
         self._pending_table_writes[self.partition()][self.key()] = value
         if self._is_not_changelog_message:

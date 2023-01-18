@@ -431,4 +431,174 @@ Also, `FluviiTableApp` will ensure everything gets committed correctly for you j
 
 Here's a few more examples.
 
-## Configuration example
+### Configuration example
+
+This explains how to set the few required config variables. You can update config example further below manually. 
+
+```python
+from fluvii.auth import SaslOauthClientConfig
+from fluvii.fluvii_app import FluviiApp, FluviiConfig
+from fluvii.transaction import Transaction
+
+
+a_cool_schema = {
+    "name": "CoolSchema",
+    "type": "record",
+    "fields": [
+        {
+            "name": "cool_field",
+            "type": "string"
+        }
+    ]
+}
+
+init_at_runtime_thing = 'cool value' # can hand off objects you'd like to init separately, like an api session object
+
+
+def fluvii_configs():
+    auth = SaslOauthClientConfig(
+        username='kafka_cluster_username',
+        password='kafka_cluster_password',
+        url='kafka_cluster_oauth_url',
+        scope='kafka_cluster_oauth_scope'
+    )
+
+    config = FluviiConfig(
+        client_urls='url',
+        client_auth_config=auth,
+        schema_registry_url='schema_registry_url',
+        schema_registry_auth_config=auth,
+    )
+
+    config.app_name = 'my_cool_app'
+    config.hostname = 'my_cool_app_hostname'
+
+    # set batch size to consume message per batch
+    config.consumer_config.batch_consume_max_count = 1
+
+    # can set "CONSUMER_TIMEOUT_LIMIT_MINUTES" + "CONSUMER_TIMESTAMP_OFFSET_MINUTES"; example 2 + 0 = 2
+    config.consumer_config.timeout_minutes = 2
+
+    # can set CONSUMER_HEARTBEAT_TIMEOUT_SECONDS like 60000 milliseconds; example 60 * 1000 
+    config.consumer_config.heartbeat_timeout_ms = 60000
+
+    # this configuration can set to push metrics to the monitoring services like prometheus & grafana
+    config.metrics_manager_config.app_name = config.app_name
+    config.metrics_manager_config.hostname = config.hostname
+
+    # set config to push metrics to the monitoring services; example True or False
+    config.metrics_pusher_config.enable_pushing = False
+    config.metrics_pusher_config.push_rate_seconds = 10
+    config.metrics_pusher_config.headless_service_name = 'metrics_service_name'
+    config.metrics_pusher_config.headless_service_port = 'metrics_service_port'
+    config.metrics_pusher_config.metrics_port = 'metrics_pod_port'
+    
+    return config
+
+
+def my_app_logic(transaction: Transaction, thing_inited_at_runtime):
+    # All we're gonna do is set our field to a new value...very exciting, right?
+    msg = transaction.message  # can also do transaction.value() to skip a step
+    cool_message_out = msg.value()
+    cool_message_out['cool_field'] = thing_inited_at_runtime  # 'cool value'
+    transaction.produce(
+        {'value': cool_message_out, 'topic': 'cool_topic_out', 'key': msg.key(), 'headers': msg.headers()}
+    )
+
+
+fluvii_app = FluviiApp(
+    app_function=my_app_logic,
+    consume_topics_list=['test_topic_1', 'test_topic_2'],
+    fluvii_config=fluvii_configs(),
+    produce_topic_schema_dict={'cool_topic_out': a_cool_schema},
+    app_function_arglist=[init_at_runtime_thing])  # optional! Here to show functionality.
+
+fluvii_app.run()
+
+```
+
+Now, let's see how to set config variables for `FluviiTableApp`
+
+```python
+from fluvii.auth import SaslOauthClientConfig
+from fluvii.fluvii_app import FluviiConfig
+from fluvii.transaction import TableTransaction
+
+from fluvii import FluviiTableApp
+
+account_balance_schema = {
+    "name": "AccountBalance",
+    "type": "record",
+    "fields": [
+        {"name": "Account Number", "type": "string"},
+        {"name": "Account Balance", "type": "string"},
+    ]
+}
+
+
+def fluvii_configs():
+    auth = SaslOauthClientConfig(
+        username='kafka_cluster_username',
+        password='kafka_cluster_password',
+        url='kafka_cluster_oauth_url',
+        scope='kafka_cluster_oauth_scope'
+    )
+
+    config = FluviiConfig(
+        client_urls='url',
+        client_auth_config=auth,
+        schema_registry_url='schema_registry_url',
+        schema_registry_auth_config=auth,
+    )
+
+    config.app_name = 'my_cool_app'
+    config.hostname = 'my_cool_app_hostname'
+    
+    # set table folder path
+    config.table_folder_path = '/opt/app-root/data'
+    
+    # set batch size to consume message per batch
+    config.consumer_config.batch_consume_max_count = 1
+
+    # can set "CONSUMER_TIMEOUT_LIMIT_MINUTES" + "CONSUMER_TIMESTAMP_OFFSET_MINUTES" example 2 + 0 = 2
+    config.consumer_config.timeout_minutes = 2
+
+    # can set CONSUMER_HEARTBEAT_TIMEOUT_SECONDS like 60000 milliseconds, example 60 * 1000 
+    config.consumer_config.heartbeat_timeout_ms = 60000
+
+    # this configuration can set to push metrics to the monitoring services like prometheus & grafana
+    config.metrics_manager_config.app_name = config.app_name
+    config.metrics_manager_config.hostname = config.hostname
+
+    # set config to push metrics to the monitoring services; example True or False
+    config.metrics_pusher_config.enable_pushing = False
+    config.metrics_pusher_config.push_rate_seconds = 10
+    config.metrics_pusher_config.headless_service_name = 'metrics_service_name'
+    config.metrics_pusher_config.headless_service_port = 'metrics_service_port'
+    config.metrics_pusher_config.metrics_port = 'metrics_pod_port'
+
+    return config
+
+
+def my_app_logic(transaction: TableTransaction):
+    record = transaction.value()
+    current_account_balance = float(transaction.read_table_entry()['balance'])  # looks up record via the message.key()
+    purchase_amount = float(record['Purchase Amount'])
+    new_balance = str(current_account_balance - purchase_amount)
+    message = {"Account Number": record["Account Number"], "Account Balance": new_balance}
+
+    transaction.update_table_entry(
+        {'balance': new_balance})  # store the updated balance for later...must be a valid json object (a dict works)
+    transaction.produce(message)
+
+
+def fluvii_table_app():
+    return FluviiTableApp(
+        app_function=my_app_logic,
+        consume_topic='purchases_made',
+        produce_topic_schema_dict={'accounts_to_notify': account_balance_schema},
+    )
+
+
+fluvii_table_app().run()
+```

@@ -1,12 +1,18 @@
+from os import environ
+from typing import Literal, Optional
+from pydantic import BaseSettings, Field
 from fluvii.config_base import KafkaConfigBase
+
 import requests
 import time
 
 
-class SaslPlainClientConfig(KafkaConfigBase):
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
+class SaslPlainClientConfig(KafkaConfigBase, BaseSettings):
+    username: str
+    password: str
+
+    class Config:
+        env_prefix = "FLUVII_AUTH_PLAIN_"
 
     def as_client_dict(self):
         return {
@@ -17,12 +23,15 @@ class SaslPlainClientConfig(KafkaConfigBase):
         }
 
 
-class SaslOauthClientConfig(KafkaConfigBase):
+class SaslOauthClientConfig(KafkaConfigBase, BaseSettings):
     def __init__(self, username, password, url, scope):
-        self.username = username
-        self.password = password
-        self.url = url
-        self.scope = scope
+        username: str
+        password: str
+        url: str
+        scope: str
+
+    class Config:
+        env_prefix = "FLUVII_AUTH_OUATH_"
 
     def _get_token(self, required_arg):
         """required_arg is...well, required. Was easier to set it up without using it (basically
@@ -31,9 +40,10 @@ class SaslOauthClientConfig(KafkaConfigBase):
             'grant_type': 'client_credentials',
             'scope': self.scope
         }
-        resp = requests.post(self.url,
-                             auth=(self.username, self.password),
-                             data=payload)
+        resp = requests.post(
+            self.url,
+            auth=(self.username, self.password),
+            data=payload)
         token = resp.json()
         return token['access_token'], time.time() + float(token['expires_in'])
 

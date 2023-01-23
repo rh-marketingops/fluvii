@@ -17,15 +17,16 @@ class MetricsPusher:
     Pushes metrics to a prometheus pushgateway in a Kubernetes environment
     """
 
-    def __init__(self, registry, config=MetricsPusherConfig()):
+    def __init__(self, registry, config=MetricsPusherConfig(), auto_init=True):
         self._config = config
         self.registry = registry
         self.push_thread = None
+        self._started = False
 
         self.metrics_pod_ips = []
 
-        if self._config.enable_pushing:
-            self.start_pushing_metrics()
+        if auto_init:
+            self.start()
 
     def _set_metrics_pod_ips(self):
         """
@@ -36,8 +37,8 @@ class MetricsPusher:
         :return: None
         """
         try:
-            socket_info_list = socket.getaddrinfo(self._config.headless_service_name, self._config.headless_service_port)
-            self.metrics_pod_ips = {f'{result[-1][0]}:{self._config.metrics_port}' for result in socket_info_list}
+            socket_info_list = socket.getaddrinfo(self._config.kubernetes_headless_service_name, self._config.kubernetes_headless_service_port)
+            self.metrics_pod_ips = {f'{result[-1][0]}:{self._config.kubernetes_pod_app_port}' for result in socket_info_list}
             LOGGER.debug(f'Set gateway addresses: {self.metrics_pod_ips}')
         except Exception:
             LOGGER.exception('Failed to set metric pod ips')
@@ -59,7 +60,7 @@ class MetricsPusher:
     def _create_metrics_pushing_thread(self):
         self.push_thread = threading.Thread(target=self._push_metrics_loop, daemon=True)
 
-    def start_pushing_metrics(self):
+    def _start_pushing_metrics(self):
         if not self.push_thread:
             self._create_metrics_pushing_thread()
         try:
@@ -67,9 +68,16 @@ class MetricsPusher:
         except:
             pass
 
-    def stop_pushing_metrics(self):
+    def _stop_pushing_metrics(self):
         if self.push_thread:
             try:
                 self.push_thread.stop()
             except:
                 pass
+
+    def start(self):
+        if not self._started:
+            self._start_pushing_metrics()
+
+    def stop(self):
+        self._stop_pushing_metrics()

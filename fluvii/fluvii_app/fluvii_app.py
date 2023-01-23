@@ -13,8 +13,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class FluviiApp:
-    def __init__(self, app_function, consume_topics_list, fluvii_config=None, produce_topic_schema_dict=None, app_function_arglist=None, metrics_manager=None,
-                 transaction_cls=Transaction, consumer_cls=TransactionalConsumer, producer_cls=TransactionalProducer):
+    def __init__(self, app_function, consume_topics_list, fluvii_config=FluviiConfig(), produce_topic_schema_dict=None, app_function_arglist=None, metrics_manager=None,
+                 transaction_cls=Transaction, consumer=None, producer=None, metrics_pusher=None, schema_registry=None):
         if not app_function_arglist:
             app_function_arglist = []
         if isinstance(consume_topics_list, str):
@@ -24,71 +24,87 @@ class FluviiApp:
 
         self._shutdown = False
         self._config = fluvii_config
-        self._transaction_cls = transaction_cls
-        self._producer_cls = producer_cls
-        self._consumer_cls = consumer_cls
+        self._config_dict = {}
         self._app_function = app_function
         self._app_function_arglist = app_function_arglist
         self._produce_topic_schema_dict = produce_topic_schema_dict
         self._consume_topics_list = consume_topics_list
-        self._consumer = None
-        self._producer = None
-        self._schema_registry = None
+        self._transaction_cls = transaction_cls
 
+        # components that get build if missing
+        self._consumer = consumer
+        self._producer = producer
+        self._metrics_pusher = metrics_pusher
+        self._schema_registry = schema_registry
         self.metrics_manager = metrics_manager
+
         self.transaction = None
 
-        self._set_config()
+    def _generate_configs(self):
+        from fluvii.producer import ProducerConfig
+        from fluvii.consumer import ConsumerConfig
+        from fluvii.auth import SaslPlainClientConfig, SaslOauthClientConfig
+        from fluvii.metrics import MetricsManagerConfig
 
-    def _set_config(self):
-        if not self._config:
-            self._config = FluviiConfig()
+        for auth in [SaslOauthClientConfig, SaslPlainClientConfig]:
+            for client_type in ['kafka', 'registry']:
+                try:
+                    self._config_dict.update({f'auth_{client_type}': auth(**self._config.get_auth(client_type))})
+                    break
+                except:
+                    pass
 
-    def _init_clients(self):
-        LOGGER.info('Initializing Kafka clients...')
+        self._config_dict.update({
+            'producer': ProducerConfig(**{k: v for k, v in {'urls': self._config.kafka_urls} if v}),
+            'consumer': ConsumerConfig(**{k: v for k, v in {'urls': self._config.kafka_urls} if v}),
+            'metrics': MetricsManagerConfig(app_name=self._config.name, hostname=self._config.hostname),
+        })
+
+    def _set_components(self):
+        self._set_metrics_manager()
         self._set_schema_registry()
         self._set_producer()
         self._set_consumer()
 
-    def _init_metrics_manager(self):
-        LOGGER.info("Initializing the MetricsManager...")
+    def _set_metrics_manager(self):
         if not self.metrics_manager:
-            self.metrics_manager = MetricsManager(
-                metrics_config=self._config.metrics_manager_config, pusher_config=self._config.metrics_pusher_config)
+            LOGGER.info("Generating the MetricsManager component...")
+            self.metrics_manager = MetricsManager(config=self._config_dict['metrics'], pusher=self._metrics_pusher, auto_init=False)
+            LOGGER.debug('MetricsManager generation complete.')
 
     def _set_schema_registry(self):
-        LOGGER.debug('Setting up Schema Registry...')
-        self._schema_registry = SchemaRegistry(
-            self._config.schema_registry_url,
-            auth_config=self._config.schema_registry_auth_config
-        ).registry
+        if not self._schema_registry:
+            LOGGER.info("Generating the SchemaRegistry component...")
+            self._schema_registry = SchemaRegistry(auth_config=self._config_dict.get('auth_registry'), auto_init=False)
+            LOGGER.debug('SchemaRegistry generation complete.')
 
     def _set_producer(self, force_init=False):
+        # TODO: make a "restart" function on the producer
         if (not self._producer) or force_init:
-            LOGGER.debug('Setting up Kafka Transactional Producer')
-            self._producer = self._producer_cls(
-                urls=self._config.client_urls,
-                client_auth_config=self._config.client_auth_config,
-                topic_schema_dict=self._produce_topic_schema_dict,
+            LOGGER.info("Generating the Producer component...")
+            self._producer = TransactionalProducer(
+                settings_config=self._config_dict['producer'],
                 transactional_id=self._config.hostname,
+                auth_config=self._config_dict.get('auth_kafka'),
+                topic_schema_dict=self._produce_topic_schema_dict,
                 metrics_manager=self.metrics_manager,
                 schema_registry=self._schema_registry,
-                settings_config=self._config.producer_config,
             )
-            LOGGER.debug('Producer setup complete.')
+            LOGGER.debug('Producer generation complete.')
 
     def _set_consumer(self, auto_subscribe=True):
         if not self._consumer:
-            self._consumer = self._consumer_cls(
-                urls=self._config.client_urls,
-                client_auth_config=self._config.client_auth_config,
-                group_id=self._config.app_name,
+            LOGGER.info("Generating the Consumer component")
+            self._consumer = TransactionalConsumer(
+                settings_config=self._config_dict['consumer'],
+                auth_config=self._config_dict.get('auth_kafka'),
+                group_id=self._config.name,
                 consume_topics_list=self._consume_topics_list,
                 auto_subscribe=auto_subscribe,
                 metrics_manager=self.metrics_manager,
                 schema_registry=self._schema_registry,
-                settings_config=self._config.consumer_config,
             )
+            LOGGER.debug('Consumer generation complete.')
 
     def abort_transaction(self):
         try:
@@ -114,8 +130,8 @@ class FluviiApp:
         self.commit()
 
     def _app_batch_run_loop(self, **kwargs):
-        LOGGER.info(f'Consuming {self._config.consumer_config.batch_consume_max_count} messages'
-                    f' over {self._config.consumer_config.batch_consume_max_time_seconds} seconds...')
+        LOGGER.info(f'Consuming {self._config_dict["consumer"].batch_consume_max_count} messages'
+                    f' over {self._config_dict["consumer"].batch_consume_max_time_seconds} seconds...')
         try:
             while not self._shutdown:
                 try:
@@ -144,8 +160,8 @@ class FluviiApp:
         self.kafka_cleanup()
 
     def _runtime_init(self):
-        self._init_metrics_manager()
-        self._init_clients()
+        for component in [self.metrics_manager, self._schema_registry, self._producer, self._consumer]:
+            component.start()
 
     def _run(self, **kwargs):
         try:

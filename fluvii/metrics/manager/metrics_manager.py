@@ -4,23 +4,21 @@ Container for standardized application monitoring gauges
 from prometheus_client import Gauge, CollectorRegistry
 from .config import MetricsManagerConfig
 from fluvii.metrics.pusher import MetricsPusher, MetricsPusherConfig
+from pydantic.error_wrappers import ValidationError
 
 
 class Metric:
-    def __init__(self, metric_name, registry, metrics_config=None, host=None, app=None, description='', additional_labels=None):
+    def __init__(self, metric_name, registry, metrics_config=None, description='', additional_labels=None):
         if not metrics_config:
             metrics_config = MetricsManagerConfig()
+        self._config = metrics_config
 
-        if not app:
-            app = metrics_config.app_name
-        if not host:
-            host = metrics_config.hostname
         if not additional_labels:
             additional_labels = []
 
         self.name = metric_name
-        self.app = app
-        self.host = host
+        self.app = self._config.app_name
+        self.host = self._config.hostname
         self.additional_labels = list(sorted(additional_labels))
         self.all_labels = ['app', 'job'] + self.additional_labels
         self.store = Gauge(self.name, description, labelnames=self.all_labels, registry=registry)
@@ -44,13 +42,14 @@ class MetricsManager:
     Creates and manages Metric instances and pushes their metrics
     """
 
-    def __init__(self, metrics_config=MetricsManagerConfig(), registry=CollectorRegistry(), pusher_cls=MetricsPusher, pusher_config=MetricsPusherConfig()):
+    def __init__(self, config=MetricsManagerConfig(), pusher=None, auto_init=True):
         """
         Initializes monitor and Metric classes
         """
-        self._config = metrics_config
-        self.registry = registry
+        self._config = config
+        self.registry = CollectorRegistry()
         self._metrics = {}
+        self.pusher = self._generate_pusher(pusher)
 
         self.new_metric('messages_consumed', description='Messages consumed since application start', additional_labels=['topic']),
         self.new_metric('messages_produced', description='Messages produced since application start', additional_labels=['topic']),
@@ -58,13 +57,23 @@ class MetricsManager:
         self.new_metric('external_requests', description='Network calls to external services', additional_labels=['request_to', 'request_endpoint', 'request_type', 'is_bulk', 'status_code']),
         self.new_metric('seconds_behind', description='Elapsed time since the consumed message was originally produced')
 
-        self.pusher = pusher_cls(self.registry, pusher_config)
+        if auto_init:
+            self.start()
 
     def __getattr__(self, name):
         try:
             return self._metrics[name]
         except:
             return super().__getattribute__(name)
+
+    def _generate_pusher(self, pusher):
+        if not pusher and self._config.enable_pushing:
+            try:
+                cfg = MetricsPusherConfig()
+            except ValidationError:
+                cfg = MetricsPusherConfig(hostname=self._config.hostname, app_name=self._config.app_name)
+            return MetricsPusher(self.registry, config=cfg)
+        return pusher
 
     @property
     def metric_names(self):
@@ -78,3 +87,8 @@ class MetricsManager:
 
     def set_metric(self, metric_name, number, label_dict=None):
         self._metrics[metric_name].set(number, label_dict=label_dict)
+
+    def start(self):
+        if not self._started:
+            if self.pusher and self._config.enable_pushing:
+                self.pusher.start()

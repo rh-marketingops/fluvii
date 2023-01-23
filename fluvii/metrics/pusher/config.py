@@ -1,18 +1,13 @@
-from os import environ
+from typing import Optional
+from pydantic import BaseSettings
 
 
-class MetricsPusherConfig:
-    def __init__(self, hostname=None):
-        if not hostname:
-            hostname = environ.get('FLUVII_HOSTNAME')
-        self.hostname = hostname
-        self.headless_service_name = environ.get('FLUVII_METRICS_PUSHER_KUBERNETES_HEADLESS_SERVICE_NAME')
-        self.headless_service_port = environ.get('FLUVII_METRICS_PUSHER_KUBERNETES_HEADLESS_SERVICE_PORT')
-        self.metrics_port = environ.get('FLUVII_METRICS_PUSHER_KUBERNETES_POD_APP_PORT')
-        self.push_rate_seconds = int(environ.get('FLUVII_METRICS_PUSHER_PUSH_RATE_SECONDS', '10'))
+class MetricsPusherConfig(BaseSettings):
+    hostname: str
+    kubernetes_headless_service_name: str
+    kubernetes_headless_service_port: Optional[str, int]
+    kubernetes_pod_app_port: Optional[str, int]
+    push_rate_seconds: int = 10
 
-        self.enable_pushing = environ.get('FLUVII_METRICS_PUSHER_ENABLE_PUSHING', 'false')
-        if self.enable_pushing.lower() == 'true':
-            self.enable_pushing = True
-        else:
-            self.enable_pushing = False
+    class Config:
+        env_prefix = "FLUVII_METRICS_PUSHER"

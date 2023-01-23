@@ -18,24 +18,24 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Producer:
-    def __init__(self, urls, schema_registry=None, topic_schema_dict=None, metrics_manager=None, client_auth_config=None, settings_config=ProducerConfig()):
-        self._urls = ','.join(urls) if isinstance(urls, list) else urls
-        self._auth = client_auth_config
-        self._settings = settings_config
+    def __init__(self, schema_registry, topic_schema_dict=None, metrics_manager=None, auth_config=None, settings_config=ProducerConfig(), auto_init=True):
+        self._settings_config = settings_config
+        
+        self._auth = auth_config
+        self._schema_registry = schema_registry
+        self.metrics_manager = metrics_manager
+        
         self._producer = None
         self._topic_partition_metadata = {}
-        self._schema_registry = schema_registry
-
         self.topic_schemas = {}
-        self.metrics_manager = metrics_manager
-
-        self._init_producer()
-
         if not topic_schema_dict:
-            topic_schema_dict = {}
-        for topic, schema in topic_schema_dict.items():
-            self.add_topic(topic, schema)
+            topic_schema_dict = {}  # allows for adding during runtime
+        self.topic_schema_dict = topic_schema_dict
 
+        self._started = False
+        if auto_init:
+            self.start()
+            
     def __getattr__(self, attr):
         """Note: this includes methods as well!"""
         try:
@@ -55,7 +55,7 @@ class Producer:
         else:
             LOGGER.debug(f'Message produced successfully!')
 
-    def _make_config(self):
+    def _make_client_config(self):
         settings = {
             "bootstrap.servers": self._urls,
 
@@ -64,18 +64,18 @@ class Producer:
             "acks": "all",
 
             # Registry Serialization Settings
-            "key.serializer": AvroSerializer(self._schema_registry, schema_str='{"type": "string"}'),
+            "key.serializer": AvroSerializer(self._schema_registry.registry, schema_str='{"type": "string"}'),
             "value.serializer": lambda: None,
         }
 
-        settings.update(self._settings.as_client_dict())
+        settings.update(self._settings_config.as_client_dict())
         if self._auth:
             settings.update(self._auth.as_client_dict())
         return settings
 
     def _init_producer(self):
         LOGGER.info('Initializing producer...')
-        self._producer = SerializingProducer(self._make_config())
+        self._producer = SerializingProducer(self._make_client_config())
         self._producer.poll(0)  # allows topic metadata querying to work immediately after init
         LOGGER.info('Producer initialized successfully!')
 
@@ -142,7 +142,7 @@ class Producer:
         LOGGER.info(f'Adding serializer for producer topic {topic}')
         if isinstance(schema, str):
             schema = self._load_schema_from_str(schema)
-        self.topic_schemas.update({topic: AvroSerializer(self._schema_registry, json.dumps(schema))})
+        self.topic_schemas.update({topic: AvroSerializer(self._schema_registry.registry, json.dumps(schema))})
 
     def add_topic(self, topic, schema, overwrite=False):
         """For adding topics at runtime"""
@@ -205,16 +205,25 @@ class Producer:
 
     def close(self):
         self._confirm_produce()
+        
+    def start(self):
+        if not self._started:
+            self.metrics_manager.start()
+            self._schema_registry.start()
+            self._init_producer()
+            for topic, schema in self.topic_schema_dict.items():
+                self.add_topic(topic, schema)
+            self._started = True
 
 
 class TransactionalProducer(Producer):
-    def __init__(self, urls, transactional_id, **kwargs):
+    def __init__(self, transactional_id, **kwargs):
         self._transactional_id = transactional_id
         self.active_transaction = False
-        super().__init__(urls, **kwargs)
+        super().__init__(**kwargs)
 
-    def _make_config(self):
-        config = super()._make_config()
+    def _make_client_config(self):
+        config = super()._make_client_config()
         config.update({"transactional.id": self._transactional_id})
         return config
 

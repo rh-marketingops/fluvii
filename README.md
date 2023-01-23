@@ -26,7 +26,7 @@ Here's what to expect over the next 3-6 months (~H1 of 2023):
 - Unit Tests
 - Better general documentation
 - Improved configuration options and structure
-- Contribution Guide and tooling
+- Contribution Guide and tooling (including how to setup pre-commit)
 - Continued stability improvements around rebalancing (specifically `FluviiTableApp`)
 - More usage examples in README
 

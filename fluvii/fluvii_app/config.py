@@ -7,20 +7,19 @@ from pydantic import BaseSettings
 
 class FluviiConfig(BaseSettings):
 
-    # Convenience
+    # - Convenience (but overrides consumer/producer "urls" if value provided)
     kafka_urls: Optional[str] = None
     registry_url: Optional[str] = None
 
-    # shared configs
+    # - Shared Configs - Overrides regardless
     name: str = 'FluviiApp'
     hostname: str = f'{name}_{datetime.timestamp(datetime.now())}'
 
-    # auth
+    # - auth
     # --- client
     auth_kafka_username: Optional[str] = None
     auth_kafka_password: Optional[str] = None
     auth_kafka_oauth_scope: Optional[str] = None
-
     # --- schema registry
     auth_registry_username: Optional[str] = None
     auth_registry_password: Optional[str] = None

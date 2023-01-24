@@ -24,11 +24,10 @@ class SaslPlainClientConfig(KafkaConfigBase, BaseSettings):
 
 
 class SaslOauthClientConfig(KafkaConfigBase, BaseSettings):
-    def __init__(self, username, password, url, scope):
-        username: str
-        password: str
-        url: str
-        scope: str
+    username: str
+    password: str
+    url: str
+    scope: str
 
     class Config:
         env_prefix = "FLUVII_AUTH_OUATH_"

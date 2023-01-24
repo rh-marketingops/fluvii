@@ -18,7 +18,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Producer:
-    def __init__(self, schema_registry, topic_schema_dict=None, metrics_manager=None, auth_config=None, settings_config=ProducerConfig(), auto_init=True):
+    def __init__(self, schema_registry, topic_schema_dict=None, metrics_manager=None,
+                 auth_config=None, settings_config=ProducerConfig(), auto_start=True):
         self._settings_config = settings_config
         
         self._auth = auth_config
@@ -33,7 +34,7 @@ class Producer:
         self.topic_schema_dict = topic_schema_dict
 
         self._started = False
-        if auto_init:
+        if auto_start:
             self.start()
             
     def __getattr__(self, attr):

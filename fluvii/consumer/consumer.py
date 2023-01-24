@@ -10,7 +10,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Consumer:
-    def __init__(self, group_id, consume_topics_list, schema_registry, auto_subscribe=True, auth_config=None, settings_config=None, metrics_manager=None, consumer_cls=DeserializingConsumer):
+    def __init__(self, group_id, consume_topics_list, schema_registry, auto_subscribe=True,
+                 auth_config=None, settings_config=None, metrics_manager=None, consumer_cls=DeserializingConsumer, auto_start=True):
         self._auth = auth_config
         self._settings = settings_config
         self._consumer = None
@@ -18,7 +19,6 @@ class Consumer:
         self._topic_metadata = None
         self._schema_registry = schema_registry
         self._consumer_cls = consumer_cls
-        self._started = False
         self._tz = datetime.datetime.utcnow().astimezone().tzinfo
 
         self.message = None
@@ -26,7 +26,9 @@ class Consumer:
         self.topics = consume_topics_list if isinstance(consume_topics_list, list) else consume_topics_list.split(',')
         self._poll_timeout = self._settings.poll_timeout_seconds if self._settings else 5
 
-        self._init_consumer(auto_subscribe=auto_subscribe)
+        self._started = False
+        if auto_start:
+            self.start(auto_subscribe=auto_subscribe)
 
     def __getattr__(self, attr):
         """Note: this includes methods as well!"""
@@ -123,20 +125,17 @@ class Consumer:
         self._consumer.store_offsets(self.message)
         self.message = None
 
-    def start(self):
+    def start(self, auto_subscribe=True):
         if not self._started:
             self.metrics_manager.start()
             self._schema_registry.start()
-            self._init_consumer()
+            self._init_consumer(auto_subscribe=auto_subscribe)
             self._started = True
 
 
 class TransactionalConsumer(Consumer):
-    def __init__(self, group_id, consume_topics_list, schema_registry, auto_subscribe=True,
-                 auth_config=None, settings_config=None, metrics_manager=None,
-                 ):
-        super().__init__(group_id, consume_topics_list, schema_registry=schema_registry, auto_subscribe=auto_subscribe,
-                         auth_config=auth_config, settings_config=settings_config, metrics_manager=metrics_manager)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._consume_max_time_secs = self._settings.batch_consume_max_time_seconds
         self._consume_max_count = self._settings.batch_consume_max_count
         self._consume_max_empty_polls = self._settings.batch_consume_max_empty_polls

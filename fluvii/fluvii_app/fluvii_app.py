@@ -1,6 +1,7 @@
 from fluvii.general_utils import log_and_raise_error
 from fluvii.exceptions import SignalRaise, GracefulTransactionFailure, FatalTransactionFailure, FinishedTransactionBatch, FailedAbort, TransactionCommitted, TransactionNotRequired
 from fluvii.transaction import Transaction
+from .app_factory import AppFactory
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -125,3 +126,7 @@ class FluviiApp:
         self._runtime_init()
         self._run(**kwargs)
         # TODO: consider just returning self._run here to allow easy way to return things?
+
+
+class FluviiAppFactory(AppFactory):
+    fluvii_app_cls = FluviiApp

@@ -1,7 +1,10 @@
-from . import FluviiApp
+from .fluvii_app import FluviiApp, FluviiAppFactory
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
-class _FluviiMultiMessageApp(FluviiApp):
+class FluviiMultiMessageApp(FluviiApp):
     """
     This is for when you need to handle multiple messages at once, like for doing a bulk api batch.
     Your app_function should be written with the expectation that transaction.messages() is a list of messages to manipulate
@@ -20,3 +23,13 @@ class _FluviiMultiMessageApp(FluviiApp):
         if self.transaction.messages():
             self._app_function(self.transaction, *self._app_function_arglist)
         super()._finalize_app_batch()
+
+
+class FluviiMultiMessageAppFactory(FluviiAppFactory):
+    fluvii_app_cls = FluviiMultiMessageApp
+
+    def _set_consumer(self, *args, **kwargs):
+        LOGGER.warning('By default, there are custom consumer settings for this type of fluvii app '
+                       'that will override any corresponding environment settings to ensure expected functionality')
+        self._consumer_config.batch_consume_store_messages = True
+        super()._set_consumer(*args, **kwargs)

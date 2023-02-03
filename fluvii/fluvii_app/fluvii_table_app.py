@@ -1,6 +1,6 @@
 from fluvii.exceptions import PartitionsAssigned, FinishedTransactionBatch, GracefulTransactionFailure, FatalTransactionFailure, TransactionCommitted, TransactionNotRequired
 from fluvii.transaction import TableTransaction
-from .fluvii_app import FluviiApp
+from .fluvii_app import FluviiApp, FluviiAppFactory
 from .rebalance_manager import TableRebalanceManager
 from datetime import datetime
 import logging
@@ -144,3 +144,7 @@ class FluviiTableApp(FluviiApp):
     @property
     def changelog_topic(self):
         return self._config.table_changelog_topic
+
+
+class FluviiTableAppFactory(FluviiAppFactory):
+    fluvii_app_cls = FluviiTableApp

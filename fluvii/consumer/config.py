@@ -1,13 +1,16 @@
-from os import environ
 from typing import Literal, Optional
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings
 from fluvii.config_base import KafkaConfigBase
+from fluvii.auth import AuthKafkaConfig, get_auth_kafka_config
 
 
 class ConsumerConfig(KafkaConfigBase, BaseSettings):
     """
     Configs that are unlikely to change between different consumer instances.
     """
+    # related configs
+    auth_config: Optional[AuthKafkaConfig] = get_auth_kafka_config()
+
     # client settings
     urls: str
     auto_commit_interval_seconds: int = 20
@@ -25,14 +28,17 @@ class ConsumerConfig(KafkaConfigBase, BaseSettings):
     batch_consume_max_time_seconds: Optional[int] = 10
     batch_consume_trigger_message_age_seconds: int = 5
     batch_consume_store_messages: bool = False
+    auto_subscribe: bool = True
 
     class Config:
         env_prefix = "FLUVII_CONSUMER_"
 
     def as_client_dict(self):
+        _auth = self.auth_config.as_client_dict() if self.auth_config else {}
         ms_tolerance = 1_000
         return {
             "bootstrap.servers": self.urls,
+            **_auth,
             "auto.commit.interval.ms": self.auto_commit_interval_seconds * 1_000,
             "auto.offset.reset": self.auto_offset_reset,
             "fetch.max.bytes": self.message_batch_max_mb * (2 ** 20),

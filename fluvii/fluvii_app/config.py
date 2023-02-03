@@ -1,29 +1,11 @@
 from datetime import datetime
-from typing import Optional
 from pydantic import BaseSettings
-
-# client_auth_config=None, schema_registry_auth_config=None, producer_config=None, consumer_config=None, metrics_manager_config=None, metrics_pusher_config=None
 
 
 class FluviiConfig(BaseSettings):
-
-    # - Convenience (but overrides consumer/producer "urls" if value provided)
-    kafka_urls: Optional[str] = None
-    registry_url: Optional[str] = None
-
-    # - Shared Configs - Overrides regardless
+    # - values also passed to other components
     name: str = 'FluviiApp'
     hostname: str = f'{name}_{datetime.timestamp(datetime.now())}'
-
-    # - auth
-    # --- client
-    auth_kafka_username: Optional[str] = None
-    auth_kafka_password: Optional[str] = None
-    auth_kafka_oauth_scope: Optional[str] = None
-    # --- schema registry
-    auth_registry_username: Optional[str] = None
-    auth_registry_password: Optional[str] = None
-    auth_registry_oauth_scope: Optional[str] = None
 
     # - Tabling
     # --- Recommended to change

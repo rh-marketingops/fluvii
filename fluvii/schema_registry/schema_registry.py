@@ -20,10 +20,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 class SchemaRegistry:
-    def __init__(self, config=SchemaRegistryConfig(), auth_config=None, auto_init=True):
+    def __init__(self, config=SchemaRegistryConfig(), auto_init=True):
         self.registry = None
         self._url = config.url
-        self._auth = auth_config
         self._started = False
         if auto_init:
             self.start()
@@ -37,15 +36,14 @@ class SchemaRegistry:
 
     def _init_registry(self):
         url = urlparse(self._url)
-        if self._auth:
-            auth = f"{quote(self._auth.username)}:{quote(self._auth.password)}@"
-        else:
-            auth = ''
+        auth = ''
+        if self.username:
+            auth = f"{quote(self.username)}:{quote(self.password)}@"
         scheme = url.scheme
         if scheme:
             url = url._replace(path=url.netloc, netloc='')
         else:
-            if self._auth:
+            if auth:
                 scheme = 'https'
             else:
                 scheme = 'http'

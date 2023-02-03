@@ -10,25 +10,19 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Consumer:
-    def __init__(self, group_id, consume_topics_list, schema_registry, auto_subscribe=True,
-                 auth_config=None, settings_config=None, metrics_manager=None, consumer_cls=DeserializingConsumer, auto_start=True):
-        self._auth = auth_config
-        self._settings = settings_config
-        self._consumer = None
+    def __init__(self, group_id, consume_topics_list, config, schema_registry, metrics_manager=None):
         self._group_id = group_id
-        self._topic_metadata = None
-        self._schema_registry = schema_registry
-        self._consumer_cls = consumer_cls
-        self._tz = datetime.datetime.utcnow().astimezone().tzinfo
-
-        self.message = None
-        self.metrics_manager = metrics_manager
         self.topics = consume_topics_list if isinstance(consume_topics_list, list) else consume_topics_list.split(',')
-        self._poll_timeout = self._settings.poll_timeout_seconds if self._settings else 5
+        self._config = config
+        self.metrics_manager = metrics_manager
+        self._schema_registry = schema_registry
 
+        self._tz = datetime.datetime.utcnow().astimezone().tzinfo
+        self._consumer = None
+        self._topic_metadata = None
+        self.message = None
+        self._poll_timeout = self._config.poll_timeout_seconds
         self._started = False
-        if auto_start:
-            self.start(auto_subscribe=auto_subscribe)
 
     def __getattr__(self, attr):
         """Note: this includes methods as well!"""
@@ -48,7 +42,7 @@ class Consumer:
         else:
             LOGGER.debug('Consumer Callback - Message consumption committed successfully')
 
-    def _make_config(self):
+    def _make_client_config(self):
         settings = {
             "group.id": self._group_id,
             "on_commit": self._consume_message_callback,
@@ -59,16 +53,12 @@ class Consumer:
             "key.deserializer": AvroDeserializer(self._schema_registry.registry, schema_str='{"type": "string"}'),
             "value.deserializer": AvroDeserializer(self._schema_registry.registry) if self._schema_registry else None,
         }
-
-        if self._settings:
-            settings.update(self._settings.as_client_dict())
-        if self._auth:
-            settings.update(self._auth.as_client_dict())
+        settings.update(self._config.as_client_dict())
         return settings
 
     def _init_consumer(self, auto_subscribe=True):
         LOGGER.info('Initializing Consumer...')
-        self._consumer = self._consumer_cls(self._make_config())
+        self._consumer = DeserializingConsumer(self._make_client_config())
         LOGGER.info('Consumer Initialized!')
         if auto_subscribe:
             self._consumer.subscribe(topics=self.topics)
@@ -125,7 +115,9 @@ class Consumer:
         self._consumer.store_offsets(self.message)
         self.message = None
 
-    def start(self, auto_subscribe=True):
+    def start(self, auto_subscribe=None):
+        if auto_subscribe is None:
+            auto_subscribe = self._config.auto_subscribe
         if not self._started:
             self.metrics_manager.start()
             self._schema_registry.start()
@@ -136,11 +128,11 @@ class Consumer:
 class TransactionalConsumer(Consumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._consume_max_time_secs = self._settings.batch_consume_max_time_seconds
-        self._consume_max_count = self._settings.batch_consume_max_count
-        self._consume_max_empty_polls = self._settings.batch_consume_max_empty_polls
-        self._store_batch_messages = self._settings.batch_consume_store_messages
-        self._max_msg_secs_behind = self._settings.batch_consume_trigger_message_age_seconds
+        self._consume_max_time_secs = self._config.batch_consume_max_time_seconds
+        self._consume_max_count = self._config.batch_consume_max_count
+        self._consume_max_empty_polls = self._config.batch_consume_max_empty_polls
+        self._store_batch_messages = self._config.batch_consume_store_messages
+        self._max_msg_secs_behind = self._config.batch_consume_trigger_message_age_seconds
         self._batch_consume = False
         self._init_attrs()
         self._reset_keep_consuming_trackers()

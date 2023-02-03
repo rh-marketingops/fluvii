@@ -1,15 +1,15 @@
 from . import FluviiApp
 
 
-class FluviiMultiMessageApp(FluviiApp):
+class _FluviiMultiMessageApp(FluviiApp):
     """
     This is for when you need to handle multiple messages at once, like for doing a bulk api batch.
     Your app_function should be written with the expectation that transaction.messages() is a list of messages to manipulate
     """
-    def _set_config_dict(self, config_dict):
-        config_dict = super()._set_config_dict(config_dict)
-        config_dict['consumer'].batch_consume_store_messages = True
-        return config_dict
+    # def _set_config_dict(self, config_dict):
+    #     config_dict = super()._set_config_dict(config_dict)
+    #     config_dict['consumer'].batch_consume_store_messages = True
+    #     return config_dict
 
     def _handle_message(self, **kwargs):
         # Don't do the app function here anymore!

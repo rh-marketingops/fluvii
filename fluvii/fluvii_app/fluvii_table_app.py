@@ -10,24 +10,13 @@ LOGGER = logging.getLogger(__name__)
 
 
 class FluviiTableApp(FluviiApp):
-    def __init__(self, app_function, consume_topic, **kwargs):
-        super().__init__(app_function, consume_topic, **kwargs)
+    def __init__(self, app_function, consume_topic, transaction_cls=TableTransaction, **kwargs):
+        super().__init__(app_function, consume_topic, transaction_cls=transaction_cls, **kwargs)
         self.topic = consume_topic
         self.tables = {}
         self._rebalance_manager = None
 
     # -------------------------  Protected Method Overrides ------------------------
-    def _set_component_dict(self, component_dict):
-        if not component_dict:
-            component_dict = {}
-        default_component_dict = {'transaction': TableTransaction}
-        default_component_dict.update(component_dict)
-        super()._set_component_dict(default_component_dict)
-
-    def _set_consumer(self, auto_subscribe=False):
-        super()._set_consumer(auto_subscribe=auto_subscribe)
-        self._consumer.subscribe(self._consume_topics_list, on_assign=self._partition_assignment,
-                                 on_revoke=self._partition_unassignment, on_lost=self._partition_unassignment)
 
     def _init_transaction_handler(self, **kwargs):
         super()._init_transaction_handler(fluvii_changelog_topic=self.changelog_topic, fluvii_tables=self.tables, **kwargs)

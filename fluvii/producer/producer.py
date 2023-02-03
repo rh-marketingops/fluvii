@@ -18,11 +18,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Producer:
-    def __init__(self, schema_registry, topic_schema_dict=None, metrics_manager=None,
-                 auth_config=None, settings_config=ProducerConfig(), auto_start=True):
-        self._settings_config = settings_config
-        
-        self._auth = auth_config
+    def __init__(self, config, schema_registry, topic_schema_dict=None, metrics_manager=None):
+        self._config = config
         self._schema_registry = schema_registry
         self.metrics_manager = metrics_manager
         
@@ -34,8 +31,6 @@ class Producer:
         self.topic_schema_dict = topic_schema_dict
 
         self._started = False
-        if auto_start:
-            self.start()
             
     def __getattr__(self, attr):
         """Note: this includes methods as well!"""
@@ -218,10 +213,10 @@ class Producer:
 
 
 class TransactionalProducer(Producer):
-    def __init__(self, transactional_id, **kwargs):
+    def __init__(self, transactional_id, *args, **kwargs):
         self._transactional_id = transactional_id
         self.active_transaction = False
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
 
     def _make_client_config(self):
         config = super()._make_client_config()

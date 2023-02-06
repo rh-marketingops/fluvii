@@ -43,72 +43,98 @@ or, if your env of _FLUVII_PRODUCER_URLS_=**my_url**
 
 NOTE: some components themselves require other components, with their own respective configs.
 
+## Configuration Examples
 
-## Configuring a FluviiApp
-FluviiApp works the same way; it has its own config, `FluviiConfig`. 
+### FluviiApp + Auth + optional config change; no environment variables
+Here, we set up a FluviiApp with required values only, and where authentication is required. 
 
-In addition, `FluviiApp` will generate any underlying necessary component configs using this `FluviiConfig`,
-where some values in the config will "override" certain values in each respective component config, ensuring they are 
-"shared" across all components correctly.
+The environment has no additional configuration (aka no values set).
 
-You can still augment any configs via environment, or manually and hand those augments to `FluviiApp` via the `component_configs` argument,
-and all will be applied except for any of the settings that are shared from `FluviiApp`, which take precidence if defined.
-
-
-## Examples of FluviiConfig Inheritence
-If a `FluviiApp` is init'ed and both `ConsumerConfig`'s _FLUVII_CONSUMER_URLS_ and `FluviiConfig`'s _FLUVII_APP_KAFKA_URLS_ 
-are set, _FLUVII_APP_KAFKA_URLS_ would take precidence since `FluviiApp` passes this value from `FluviiConfig` to `ConsumerConfig` 
-when it generates a `TransactionalConsumer`. However, if _FLUVII_APP_KAFKA_URLS_ is not set, 
-yet both _FLUVII_CONSUMER_URLS_ and _FLUVII_PRODUCER_URLS_ are, then your app would instead use those.
-
-All "replacement" configurations will be dictated in the FluviiConfig.
-
-
-## How to extend `FluviiApp` to help enforce specific config settings
-If you are extending the `FluviiApp` class and wish to enforce certain config values despite user input, 
-the best course of action is to just extend the `set_config_dict` method and override the configs with your desired values.
-
-
-## Full Configuration Examples not using environment, non-default config values
-
-
-## FluviiApp
+We also change the `consumer_timeout` from the default to 7 minutes.
 ```python
 
-from fluvii.fluvii_app import FluviiApp, FluviiConfig
+from fluvii.fluvii_app import FluviiAppFactory, FluviiConfig
+from fluvii.producer import ProducerConfig
 from fluvii.consumer import ConsumerConfig
+from fluvii.auth import AuthKafkaConfig
+from fluvii.schema_registry import SchemaRegistryConfig
 
 my_schema = 'your schema here'
 
 def my_business_logic(transaction):
     pass # do stuff to messages
 
-fluvii_config = FluviiConfig(
-    kafka_urls='my.broker.url0,my.broker.url1',
-    auth_kafka_username='my_username',
-    auth_kafka_password='my_password',
-    registry_url='my.schema.registry.url',
-    auth_registry_username='my_schema_registry_username',
-    auth_registry_password='my_schema_registry_password'
-)
 
-# optional config changes, shown a couple ways
-### Variation 1
-### url is a required setting, but gets overwritten with fluvii_config's "kafka_urls"
-consumer_config = ConsumerConfig(url='will_get_overridden', timeout_minutes=7)
-configs = [consumer_config]
-
-### Variation 2
-### can ignore required fields like "url" this way, but lose out on validation and auto-complete
-configs = {'consumer': {'timeout_minutes': 7}}
-
-def my_app():
-    return FluviiApp(
+def build_my_app():
+    auth_kafka_kws = {
+        'urls': 'my.broker.url0,my.broker.url1', 
+        'auth_kafka_config': AuthKafkaConfig(username='my_kafka_un', password='my_kafka_pw')
+    }
+    return FluviiAppFactory(
         app_function=my_business_logic,
         consume_topics_list=['my_input_topic'],
         produce_topic_schema_dict={'my_output_topic': my_schema},
-        fluvii_config=fluvii_config,
-        component_configs=configs
+        fluvii_config=FluviiConfig(app_name='my_fluvii_app'),
+        schema_registry_config=SchemaRegistryConfig(url='my.sr.url', username='my_sr_un', password='my_sr_pw'),
+        consumer_config=ConsumerConfig(**auth_kafka_kws, timeout_minutes=7),
+        producer_config=ProducerConfig(**auth_kafka_kws),
     )
 
+
+if __name__ == '__main__':
+    app = build_my_app()
+    app.run()
+```
+
+
+### FluviiApp + Auth + optional config change; all via environment variables
+Here, we set up a FluviiApp with required values only, and where authentication is required. 
+
+The environment is fully configured via sourcing a dotenv file.
+
+We also change optional consumer setting `consumer_timeout` from the default to 7 minutes.
+
+dotenv:
+```.dotenv
+### Connection/authentication
+# Kafka Consumer/Producer
+KAFKA_BROKER_URLS=my.broker.url0,my.broker.url1
+FLUVII_PRODUCER_URLS=$KAFKA_BROKER_URLS
+FLUVII_CONSUMER_URLS=$KAFKA_BROKER_URLS
+FLUVII_KAFKA_AUTH_USERNAME=my_kafka_un
+FLUVII_KAFKA_AUTH_PASSWORD=my_kafka_pw
+# Schema Registry
+FLUVII_SCHEMA_REGISTRY_URL=my.sr.url
+FLUVII_SCHEMA_REGISTRY_USERNAME=my_sr_un
+FLUVII_SCHEMA_REGISTRY_PASSWORD=my_sr_pw
+
+### fluvii app settings
+FLUVII_APP_NAME=my_fluvii_app
+
+### Consumer settings
+FLUVII_CONSUMER_TIMEOUT_MINUTES=7
+```
+
+python:
+```python
+
+from fluvii.fluvii_app import FluviiAppFactory
+
+my_schema = 'your schema here'
+
+def my_business_logic(transaction):
+    pass # do stuff to messages
+
+
+def build_my_app():
+    return FluviiAppFactory(
+        app_function=my_business_logic,
+        consume_topics_list=['my_input_topic'],
+        produce_topic_schema_dict={'my_output_topic': my_schema},
+    )
+
+
+if __name__ == '__main__':
+    app = build_my_app()
+    app.run()
 ```

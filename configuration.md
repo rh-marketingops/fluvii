@@ -95,7 +95,7 @@ The environment is fully configured via sourcing a dotenv file.
 We also change optional consumer setting `consumer_timeout` from the default to 7 minutes.
 
 dotenv:
-```.dotenv
+```dotenv
 ### Connection/authentication
 # Kafka Consumer/Producer
 KAFKA_BROKER_URLS=my.broker.url0,my.broker.url1

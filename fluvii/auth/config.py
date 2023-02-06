@@ -1,7 +1,6 @@
 from typing import Literal, Optional
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings
 from fluvii.config_base import KafkaConfigBase
-
 import requests
 import time
 

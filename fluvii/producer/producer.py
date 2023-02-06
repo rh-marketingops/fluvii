@@ -73,6 +73,8 @@ class Producer:
         LOGGER.info('Initializing producer...')
         self._producer = SerializingProducer(self._make_client_config())
         self._producer.poll(0)  # allows topic metadata querying to work immediately after init
+        for topic, schema in self.topic_schema_dict.items():
+            self.add_topic(topic, schema)
         LOGGER.info('Producer initialized successfully!')
 
     def _get_topic_metadata(self, topic):
@@ -207,9 +209,10 @@ class Producer:
             self.metrics_manager.start()
             self._schema_registry.start()
             self._init_producer()
-            for topic, schema in self.topic_schema_dict.items():
-                self.add_topic(topic, schema)
             self._started = True
+
+    def reset(self):
+        self._init_producer()
 
 
 class TransactionalProducer(Producer):

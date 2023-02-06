@@ -148,3 +148,8 @@ class FluviiTableApp(FluviiApp):
 
 class FluviiTableAppFactory(FluviiAppFactory):
     fluvii_app_cls = FluviiTableApp
+
+    def _set_consumer(self):
+        if len(self.consume_topics_list) > 1:
+            raise IndexError('Too many topics for FluviiTableApp; you cannot provide more than 1 topic')
+        super()._set_consumer()

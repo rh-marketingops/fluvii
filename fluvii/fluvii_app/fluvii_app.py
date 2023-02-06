@@ -10,12 +10,6 @@ LOGGER = logging.getLogger(__name__)
 class FluviiApp:
     def __init__(self, app_function, consume_topics_list, fluvii_config, producer, consumer, schema_registry,
                  transaction_cls=Transaction, produce_topic_schema_dict=None, app_function_arglist=None, metrics_manager=None):
-        if not app_function_arglist:
-            app_function_arglist = []
-        if isinstance(consume_topics_list, str):
-            consume_topics_list = consume_topics_list.split(',')
-        if not produce_topic_schema_dict:  # Should only be the case if you dynamically add topics at runtime...otherwise should just use the plain Consumer
-            produce_topic_schema_dict = {}
 
         self._shutdown = False
         self._config = fluvii_config
@@ -36,7 +30,7 @@ class FluviiApp:
         try:
             self.transaction.abort_transaction()
         except FailedAbort:
-            # TODO: reset producer method
+            self._producer.reset()
             pass
 
     def _init_transaction_handler(self, **kwargs):

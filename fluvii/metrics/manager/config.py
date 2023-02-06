@@ -7,7 +7,8 @@ from pydantic import BaseSettings, Field
 class MetricsManagerConfig(BaseSettings):
     hostname: str
     app_name: str
-    enable_pushing: bool = True
+    enable_metrics: bool = False
+    enable_pushing: bool = False
 
     class Config:
         env_prefix = "FLUVII_METRICS_MANAGER"

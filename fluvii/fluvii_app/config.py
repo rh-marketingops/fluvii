@@ -3,7 +3,7 @@ from pydantic import BaseSettings
 
 
 class FluviiConfig(BaseSettings):
-    # - values also passed to other components
+    # - values also passed to other components/configs
     name: str = 'FluviiApp'
     hostname: str = f'{name}_{datetime.timestamp(datetime.now())}'
 

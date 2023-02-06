@@ -22,12 +22,12 @@ class AppFactory:
 
     def __init__(
             self, app_function, consume_topics_list, produce_topic_schema_dict=None, app_function_arglist=None,
-            fluvii_config=FluviiConfig(), producer_config=ProducerConfig(), consumer_config=ConsumerConfig(),
-            schema_registry_config=SchemaRegistryConfig(), metrics_manager_config=None):
+            fluvii_config=FluviiConfig(), schema_registry_config=SchemaRegistryConfig(),
+            producer_config=ProducerConfig(), consumer_config=ConsumerConfig(), metrics_manager_config=None):
         self._fluvii_config = fluvii_config
+        self._schema_registry_config = schema_registry_config
         self._producer_config = producer_config
         self._consumer_config = consumer_config
-        self._schema_registry_config = schema_registry_config
         self._metrics_manager_config = metrics_manager_config
         self._schema_registry = self._set_schema_registry()
         self._metrics_manager = self._set_metrics_manager()

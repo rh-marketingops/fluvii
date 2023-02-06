@@ -5,7 +5,6 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.avro import load as avro_load
 from fluvii.general_utils import parse_headers
 from fluvii.exceptions import ProducerTimeoutFailure
-from .config import ProducerConfig
 import json
 import mmh3
 import uuid

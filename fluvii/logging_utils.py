@@ -19,7 +19,7 @@ def _init_handler(loglevel=None):
 
 
 def _get_loglevel():
-    return environ.get('FLUVII_LOGLEVEL', 'INFO')
+    return environ.get('FLUVII_LOGLEVEL', 'DEBUG')
 
 
 def init_logger(name, loglevel=None):

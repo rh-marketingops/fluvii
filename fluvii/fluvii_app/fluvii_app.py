@@ -1,7 +1,7 @@
 from fluvii.general_utils import log_and_raise_error
 from fluvii.exceptions import SignalRaise, GracefulTransactionFailure, FatalTransactionFailure, FinishedTransactionBatch, FailedAbort, TransactionCommitted, TransactionNotRequired
 from fluvii.transaction import Transaction
-from .app_factory import AppFactory
+from .app_factory_base import AppFactory
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -51,8 +51,8 @@ class FluviiApp:
         self.commit()
 
     def _app_batch_run_loop(self, **kwargs):
-        LOGGER.info(f'Consuming {self._config.consumer_config.batch_consume_max_count} messages'
-                    f' over {self._config.consumer_config.batch_consume_max_time_seconds} seconds...')
+        LOGGER.info(f'Consuming {self._consumer._config.batch_consume_max_count} messages'
+                    f' over {self._consumer._config.batch_consume_max_time_seconds} seconds...')
         try:
             while not self._shutdown:
                 try:
@@ -84,6 +84,7 @@ class FluviiApp:
         for component in [self.metrics_manager, self._schema_registry, self._producer, self._consumer]:
             if component:
                 component.start()
+        LOGGER.info(f'\nFluviiApp Configuration:\n{self._config}')
 
     def _run(self, **kwargs):
         try:

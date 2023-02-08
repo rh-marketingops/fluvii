@@ -1,10 +1,7 @@
-from os import environ
-from typing import Literal, Optional
-from pydantic import BaseSettings, Field
+from fluvii.config_bases import FluviiConfigBase
 
 
-# TODO: Not happy with how this is organized/works, but needed to release something for now.
-class MetricsManagerConfig(BaseSettings):
+class MetricsManagerConfig(FluviiConfigBase):
     hostname: str
     app_name: str
     enable_metrics: bool = False

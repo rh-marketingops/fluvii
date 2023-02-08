@@ -1,13 +1,13 @@
 from typing import Literal, Optional
-from pydantic import BaseSettings
-from fluvii.config_base import KafkaConfigBase
+from fluvii.config_bases import KafkaConfigBase, FluviiConfigBase
+from pydantic import SecretStr
 import requests
 import time
 
 
-class AuthKafkaConfig(KafkaConfigBase, BaseSettings):
+class AuthKafkaConfig(KafkaConfigBase, FluviiConfigBase):
     username: str
-    password: str
+    password: SecretStr
     oauth_url: Optional[str] = None
     oauth_scope: Optional[str] = None
     mechanisms: Literal['PLAIN', 'OAUTHBEARER'] = 'OAUTHBEARER' if oauth_url else 'PLAIN'
@@ -25,7 +25,7 @@ class AuthKafkaConfig(KafkaConfigBase, BaseSettings):
         }
         resp = requests.post(
             self.oauth_url,
-            auth=(self.username, self.password),
+            auth=(self.username, self.password.get_secret_value()),
             data=payload)
         token = resp.json()
         return token['access_token'], time.time() + float(token['expires_in'])
@@ -40,12 +40,12 @@ class AuthKafkaConfig(KafkaConfigBase, BaseSettings):
             if self.oauth_url:
                 client_dict.update({'oauth_cb': self._get_oauth_token})
             else:
-                client_dict.update({'username': self.username, 'password': self.password})
+                client_dict.update({'sasl.username': self.username, 'sasl.password': self.password.get_secret_value()})
         return client_dict
 
 
-def get_auth_kafka_config():
+def get_auth_kafka_config(**kwargs):
     try:
-        return AuthKafkaConfig()
+        return AuthKafkaConfig(**kwargs)
     except:
         return None

@@ -24,8 +24,8 @@ class FluviiMultiMessageApp(FluviiApp):
 class FluviiMultiMessageAppFactory(FluviiAppFactory):
     fluvii_app_cls = FluviiMultiMessageApp
 
-    def _set_consumer(self):
+    def _make_consumer(self):
         LOGGER.warning('By default, there are custom consumer settings for this type of fluvii app '
-                       'that will override any corresponding environment settings to ensure expected functionality')
+                       'that will override any corresponding configuration settings to ensure expected functionality')
         self._consumer_config.batch_consume_store_messages = True
-        super()._set_consumer()
+        return super()._make_consumer()

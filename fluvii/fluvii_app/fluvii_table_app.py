@@ -10,8 +10,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class FluviiTableApp(FluviiApp):
-    def __init__(self, app_function, consume_topic, transaction_cls=TableTransaction, **kwargs):
-        super().__init__(app_function, consume_topic, transaction_cls=transaction_cls, **kwargs)
+    def __init__(self, app_function, consume_topic, *args, transaction_cls=TableTransaction, **kwargs):
+        super().__init__(app_function, consume_topic, *args, transaction_cls=transaction_cls, **kwargs)
         self.topic = consume_topic
         self.tables = {}
         self._rebalance_manager = None
@@ -37,6 +37,9 @@ class FluviiTableApp(FluviiApp):
 
     def _runtime_init(self):
         super()._runtime_init()
+        self._consumer.subscribe(
+            self._consume_topics_list, on_assign=self._partition_assignment,
+            on_revoke=self._partition_unassignment, on_lost=self._partition_unassignment)
         self._producer.add_topic(self.changelog_topic, {"type": "string"})
         self._rebalance_manager = TableRebalanceManager(self._consumer, self.changelog_topic, self.tables, self._config)
 
@@ -89,7 +92,7 @@ class FluviiTableApp(FluviiApp):
 
     def _table_recovery_consume_loop(self, checks):
         LOGGER.info(f'Consuming from changelog partitions: {[p.partition for p in self._rebalance_manager.recovery_partitions]}')
-        LOGGER.info(f'Processing up to {self._config.consumer_config.batch_consume_max_count * self._recovery_multiplier} messages for up to {self._config.consumer_config.batch_consume_max_time_seconds} seconds!')
+        LOGGER.info(f'Processing up to {self._consumer._config.batch_consume_max_count * self._recovery_multiplier} messages for up to {self._config.consumer_config.batch_consume_max_time_seconds} seconds!')
         # NOTE: no transaction commits since its just consuming from changelog and writing to the table, we dont care about the consumer group offset
         try:
             while not self._shutdown:
@@ -149,7 +152,7 @@ class FluviiTableApp(FluviiApp):
 class FluviiTableAppFactory(FluviiAppFactory):
     fluvii_app_cls = FluviiTableApp
 
-    def _set_consumer(self):
-        if len(self.consume_topics_list) > 1:
+    def _make_consumer(self, auto_subscribe=False):
+        if len(self._consume_topics_list) > 1:
             raise IndexError('Too many topics for FluviiTableApp; you cannot provide more than 1 topic')
-        super()._set_consumer()
+        return super()._make_consumer(auto_subscribe=auto_subscribe)

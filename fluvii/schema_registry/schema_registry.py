@@ -14,17 +14,18 @@ def patched_schema_loads(schema_str):
 import confluent_kafka
 confluent_kafka.schema_registry.avro._schema_loads = patched_schema_loads
 import logging
-from .config import SchemaRegistryConfig
+
 
 LOGGER = logging.getLogger(__name__)
 
 
 class SchemaRegistry:
-    def __init__(self, config=SchemaRegistryConfig(), auto_init=True):
+    def __init__(self, config, auto_start=True):
         self.registry = None
+        self._config = config
         self._url = config.url
         self._started = False
-        if auto_init:
+        if auto_start:
             self.start()
 
     def __getattr__(self, attr):
@@ -35,10 +36,10 @@ class SchemaRegistry:
             return self.registry.__getattribute__(attr)
 
     def _init_registry(self):
-        url = urlparse(self._url)
+        url = urlparse(self._config.url)
         auth = ''
-        if self.username:
-            auth = f"{quote(self.username)}:{quote(self.password)}@"
+        if self._config.username and self._config.password:
+            auth = f"{quote(self._config.username)}:{quote(self._config.password.get_secret_value())}@"
         scheme = url.scheme
         if scheme:
             url = url._replace(path=url.netloc, netloc='')

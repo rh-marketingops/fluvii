@@ -10,7 +10,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Consumer:
-    def __init__(self, group_id, consume_topics_list, config, schema_registry, metrics_manager=None):
+    def __init__(self, group_id, consume_topics_list, config, schema_registry, metrics_manager=None, auto_start=True, auto_subscribe=True):
         self._group_id = group_id
         self.topics = consume_topics_list if isinstance(consume_topics_list, list) else consume_topics_list.split(',')
         self._config = config
@@ -22,7 +22,11 @@ class Consumer:
         self._topic_metadata = None
         self.message = None
         self._poll_timeout = self._config.poll_timeout_seconds
+        self._auto_subscribe = auto_subscribe
         self._started = False
+
+        if auto_start:
+            self.start()
 
     def __getattr__(self, attr):
         """Note: this includes methods as well!"""
@@ -54,15 +58,18 @@ class Consumer:
             "value.deserializer": AvroDeserializer(self._schema_registry.registry) if self._schema_registry else None,
         }
         settings.update(self._config.as_client_dict())
+        LOGGER.info(f'\nConsumer Component Configuration:\n{self._config}')
         return settings
 
-    def _init_consumer(self, auto_subscribe=True):
+    def _init_consumer(self):
         LOGGER.info('Initializing Consumer...')
         self._consumer = DeserializingConsumer(self._make_client_config())
         LOGGER.info('Consumer Initialized!')
-        if auto_subscribe:
+        if self._auto_subscribe:
             self._consumer.subscribe(topics=self.topics)
             LOGGER.info(f'Consumer subscribed to topics {self.topics}!')
+        else:
+            LOGGER.info(f'No topics assigned; awaiting a manual "subscribe" or "assign" command')
 
     def _poll_for_message(self, timeout=None):
         """Is a separate method to isolate communication interface with Kafka"""
@@ -115,13 +122,12 @@ class Consumer:
         self._consumer.store_offsets(self.message)
         self.message = None
 
-    def start(self, auto_subscribe=None):
-        if auto_subscribe is None:
-            auto_subscribe = self._config.auto_subscribe
+    def start(self):
         if not self._started:
-            self.metrics_manager.start()
-            self._schema_registry.start()
-            self._init_consumer(auto_subscribe=auto_subscribe)
+            for obj in [self.metrics_manager, self._schema_registry]:
+                if obj:
+                    obj.start()
+            self._init_consumer()
             self._started = True
 
 

@@ -1,1 +1,2 @@
-from .schema_registry import SchemaRegistry, SchemaRegistryConfig
+from .schema_registry import SchemaRegistry
+from .config import SchemaRegistryConfig

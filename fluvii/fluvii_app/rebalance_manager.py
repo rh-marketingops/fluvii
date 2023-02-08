@@ -76,13 +76,13 @@ class TableRebalanceManager:
     5. Pause all changelog partitions indefinitely, resume all primary partitions.
 
     """
-    def __init__(self, consumer, changelog_topic, tables, config):
+    def __init__(self, consumer, changelog_topic, tables, fluvii_config):
         self.consumer = consumer
         self.changelog = changelog_topic
         self._primary_partitions = []
         self._changelog_partitions = []
         self.tables = tables
-        self._config = config
+        self._fluvii_config = fluvii_config
         self._init_recovery_time_remaining_attrs()
         LOGGER.debug('table rebalance manager initialized')
 
@@ -118,7 +118,7 @@ class TableRebalanceManager:
     def _init_table_dbs(self):
         for p in self._changelog_partitions:
             if not p.table_assigned:
-                self.tables[p.partition] = SqliteFluvii(f'p{p.partition}', self._config, allow_commits=True)
+                self.tables[p.partition] = SqliteFluvii(f'p{p.partition}', self._fluvii_config.sqlite_config, allow_commits=True)
                 p.table_assigned = True
 
     def _init_recovery_time_remaining_attrs(self):

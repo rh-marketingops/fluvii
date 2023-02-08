@@ -3,7 +3,7 @@ import os
 from sqlitedict import SqliteDict
 from sqlite3 import DatabaseError
 from pathlib import Path
-from os import makedirs, listdir, remove
+from os import makedirs
 import json
 from copy import deepcopy
 import logging
@@ -14,25 +14,22 @@ LOGGER = logging.getLogger(__name__)
 
 # TODO: make a non-fluvii version for just reading tables like a typical client
 class SqliteFluvii:
-    def __init__(self, table_name, fluvii_config, table_path=None, auto_init=True, allow_commits=False):
+    def __init__(self, table_name, sqlite_config, auto_start=True, allow_commits=False):
         self._allow_commits = allow_commits
-        self._max_pending_writes_count = fluvii_config.consumer_config.batch_consume_max_count * 5
-        self._min_cache_count = fluvii_config.consumer_config.batch_consume_max_count * 20
-        self._max_cache_count = fluvii_config.consumer_config.batch_consume_max_count * 50
+        self._max_pending_writes_count = sqlite_config.max_pending_writes_count
+        self._min_cache_count = sqlite_config.min_cache_count
+        self._max_cache_count = sqlite_config.max_cache_count
         self.db = None
         self.table_name = table_name
         self.db_cache = {}
         self.offset = None
-        # self.cancelled_offset_count = 0
         self.write_cache = {}
         self._current_read = (None, '')
-        if not table_path:
-            table_path = fluvii_config.table_folder_path
-        makedirs(table_path, exist_ok=True)
-        self.db_folder = Path(f"{table_path}").absolute()
-        self.full_db_path = Path(f"{table_path}/{table_name}.sqlite").absolute()
+        makedirs(sqlite_config.table_directory, exist_ok=True)
+        self.db_folder = Path(f"{sqlite_config.table_directory}").absolute()
+        self.full_db_path = Path(f"{sqlite_config.table_directory}/{table_name}.sqlite").absolute()
 
-        if auto_init:
+        if auto_start:
             self._init_db()
             self.offset = self._get_offset()
 

@@ -1,29 +1,59 @@
-from fluvii.general_utils import Admin
-from fluvii.producer import Producer
-from fluvii.fluvii_app import FluviiConfig
-from fluvii.auth import SaslPlainClientConfig
-from fluvii.schema_registry import SchemaRegistry
+from fluvii.admin import Admin, AdminConfig
+from fluvii.consumer.consumer_factory import ConsumerFactory
+from fluvii.producer.producer_factory import ProducerFactory
+from fluvii.producer import ProducerConfig
+from fluvii.consumer import ConsumerConfig
+from fluvii.schema_registry import SchemaRegistryConfig
+# from fluvii.fluvii_app.app_factory_base import AppFactory, SchemaRegistryConfig, ProducerConfig, ConsumerConfig
 from confluent_kafka.admin import NewTopic, ConfigResource
-from fluvii.kafka_tools.topic_dumper import TopicDumperApp
 import logging
 
 
 LOGGER = logging.getLogger(__name__)
 
 
-class FluviiToolbox:
+class FluviiToolbox(ProducerFactory, ConsumerFactory):
     """
     Helpful functions for interacting with Kafka.
     """
+    def __new__(cls, *args, **kwargs):
+        toolbox = object.__new__(cls)
+        toolbox.__init__(*args, **kwargs)
+        return toolbox
 
-    def __init__(self, fluvii_config=None):
-        if not fluvii_config:
-            fluvii_config = FluviiConfig()
-        self._config = fluvii_config
-        admin_auth = self._config.client_auth_config
-        if self._config.client_auth_config:
-            admin_auth = SaslPlainClientConfig(username=admin_auth.username, password=admin_auth.password)
-        self.admin = Admin(self._config.client_urls, admin_auth)
+    def __init__(self, admin_config=None, producer_config=None, consumer_config=None, schema_registry_config=None):
+        # producer
+        self._producer_config = producer_config
+        self._topic_schema_dict = None
+
+        # consumer
+        self._consumer_config = consumer_config
+        self._consume_topics_list = None
+
+        self._auto_start = True
+        self._schema_registry_config = schema_registry_config
+        self._metrics_manager_config = None
+        self._schema_registry = None
+        self._metrics_manager = None
+        self.admin = None
+        self._admin_config = admin_config
+        if self._admin_config:
+            self._set_admin()
+
+    def _return_class(self):
+        return self
+
+    def _set_admin(self):
+        if not self.admin:
+            if not self._admin_config:
+                self._admin_config = AdminConfig()
+            self.admin = Admin(config=self._admin_config).admin_client
+
+    def _set_schema_registry(self):
+        if not self._schema_registry_config:
+            self._schema_registry_config = SchemaRegistryConfig()
+        if not self._schema_registry:
+            self._schema_registry = super()._make_schema_registry()
 
     def list_topics(self, valid_only=True, include_configs=False):
         def _valid(topic):
@@ -38,8 +68,9 @@ class FluviiToolbox:
 
     def create_topics(self, topic_config_dict, ignore_existing_topics=True):
         """
-        {'topic_a': {'partitions': 1, 'replication_factor': 1, 'segment.ms': 10000}, 'topic_b': {etc}},
+        {'topic_a': {'partitions': 1, 'replication.factor': 1, 'segment.ms': 10000}, 'topic_b': {etc}},
         """
+        self._set_admin()
         if ignore_existing_topics:
             existing = set(self.list_topics())
             remove = set(topic_config_dict.keys()) & existing
@@ -51,7 +82,7 @@ class FluviiToolbox:
             topic_config_dict[topic] = NewTopic(
                 topic=topic,
                 num_partitions=topic_config_dict[topic].pop('partitions'),
-                replication_factor=topic_config_dict[topic].pop('replication_factor'),
+                replication_factor=topic_config_dict[topic].pop('replication.factor'),
                 config=topic_config_dict[topic])
         if topic_config_dict:
             futures = self.admin.create_topics(list(topic_config_dict.values()), operation_timeout=10)
@@ -59,10 +90,13 @@ class FluviiToolbox:
                 futures[topic].result()
         LOGGER.info(f'Created topics: {list(topic_config_dict.keys())}')
 
-    def alter_topics(self, topic_config_dict, retain_configs=True, ignore_missing_topics=True, protected_configs=[]):
+    def alter_topics(self, topic_config_dict, retain_configs=True, ignore_missing_topics=True, protected_configs=None):
         """
-        {'topic_a': {'partitions': 1, 'replication_factor': 1, 'segment.ms': 10000}, 'topic_b': {etc}}
+        {'topic_a': {'partitions': 1, 'replication.factor': 1, 'segment.ms': 10000}, 'topic_b': {etc}}
         """
+        self._set_admin()
+        if not protected_configs:
+            protected_configs = []
         current_configs = {}
         if retain_configs:
             current_configs = self.list_topics(include_configs=True)
@@ -88,6 +122,7 @@ class FluviiToolbox:
         LOGGER.info(f'Altered topics: {list(topic_config_dict.keys())}')
 
     def delete_topics(self, topics, ignore_missing=True):
+        self._set_admin()
         if ignore_missing:
             existing = set(self.list_topics())
             missing = set(topics) - existing
@@ -100,13 +135,21 @@ class FluviiToolbox:
                 futures[topic].result()
         LOGGER.info(f'Deleted topics: {topics}')
 
+    def _prepare_producer(self, topic_schema_dict):
+        self._set_schema_registry()
+        if not self._producer_config:
+            self._producer_config = ProducerConfig()
+        self._topic_schema_dict = topic_schema_dict
+
+    def _prepare_consumer(self, consume_topics_list):
+        self._set_schema_registry()
+        if not self._consumer_config:
+            self._consumer_config = ConsumerConfig()
+        self._consume_topics_list = consume_topics_list
+
     def produce_messages(self, topic_schema_dict, message_list, topic_override=None):
-        producer = Producer(
-            urls=self._config.client_urls,
-            client_auth_config=self._config.client_auth_config,
-            topic_schema_dict=topic_schema_dict,
-            schema_registry=SchemaRegistry(self._config.schema_registry_url, auth_config=self._config.schema_registry_auth_config).registry
-        )
+        self._prepare_producer(topic_schema_dict)
+        producer = self._make_producer()
         LOGGER.info('Producing messages...')
         poll = 0
         if topic_override:
@@ -124,4 +167,6 @@ class FluviiToolbox:
         LOGGER.info('Produce finished!')
 
     def consume_messages(self, consume_topics_dict, transform_function=None):
-        return TopicDumperApp(consume_topics_dict, app_function=transform_function, fluvii_config=self._config).run()
+        # TODO: convert this to just use a consumer
+        from fluvii.kafka_tools.topic_dumper import TopicDumperAppFactory
+        return TopicDumperAppFactory(consume_topics_dict, app_function=transform_function).run()

@@ -5,6 +5,7 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.avro import load as avro_load
 from fluvii.general_utils import parse_headers
 from fluvii.exceptions import ProducerTimeoutFailure
+from pprint import pformat
 import json
 import mmh3
 import uuid
@@ -17,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Producer:
-    def __init__(self, config, schema_registry, topic_schema_dict=None, metrics_manager=None):
+    def __init__(self, config, schema_registry, topic_schema_dict=None, metrics_manager=None, auto_start=True):
         self._config = config
         self._schema_registry = schema_registry
         self.metrics_manager = metrics_manager
@@ -30,6 +31,9 @@ class Producer:
         self.topic_schema_dict = topic_schema_dict
 
         self._started = False
+
+        if auto_start:
+            self.start()
             
     def __getattr__(self, attr):
         """Note: this includes methods as well!"""
@@ -52,8 +56,6 @@ class Producer:
 
     def _make_client_config(self):
         settings = {
-            "bootstrap.servers": self._urls,
-
             "on_delivery": self._callback,
             "enable.idempotence": "true",
             "acks": "all",
@@ -62,10 +64,8 @@ class Producer:
             "key.serializer": AvroSerializer(self._schema_registry.registry, schema_str='{"type": "string"}'),
             "value.serializer": lambda: None,
         }
-
-        settings.update(self._settings_config.as_client_dict())
-        if self._auth:
-            settings.update(self._auth.as_client_dict())
+        settings.update(self._config.as_client_dict())
+        LOGGER.info(f'\nProducer Component Configuration:\n{self._config}')
         return settings
 
     def _init_producer(self):
@@ -205,8 +205,9 @@ class Producer:
         
     def start(self):
         if not self._started:
-            self.metrics_manager.start()
-            self._schema_registry.start()
+            for obj in [self.metrics_manager, self._schema_registry]:
+                if obj:
+                    obj.start()
             self._init_producer()
             self._started = True
 

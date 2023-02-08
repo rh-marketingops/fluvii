@@ -64,7 +64,7 @@ def consume_topics(topic_offset_dict, output_filepath):
             msg['headers'] = parse_headers(msg['headers'])
         return msgs
     topic_offset_dict = json.loads(topic_offset_dict)
-    messages = FluviiToolbox().consume_messages(topic_offset_dict, transform)
+    messages = FluviiToolbox().consume_messages(transform, topic_offset_dict)
     click.echo('Messages finished consuming, now outputting to file...')
     json.dump(messages, output_filepath, indent=4, sort_keys=True)
 

@@ -17,7 +17,7 @@ class MetricsPusher:
     Pushes metrics to a prometheus pushgateway in a Kubernetes environment
     """
 
-    def __init__(self, registry, config=MetricsPusherConfig(), auto_init=True):
+    def __init__(self, registry, config, auto_init=True):
         self._config = config
         self.registry = registry
         self.push_thread = None
@@ -71,7 +71,7 @@ class MetricsPusher:
     def _stop_pushing_metrics(self):
         if self.push_thread:
             try:
-                self.push_thread.stop()
+                self.push_thread.stop()  # TODO: .stop() isn't a thing, but it's not really used so...leave it for now
             except:
                 pass
 

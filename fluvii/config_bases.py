@@ -1,4 +1,9 @@
 from abc import ABC, abstractmethod
+from pydantic import BaseSettings
+from pprint import pformat
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 class KafkaConfigBase(ABC):
@@ -12,3 +17,8 @@ class KafkaConfigBase(ABC):
     @abstractmethod
     def as_client_dict(self):
         pass
+
+
+class FluviiConfigBase(BaseSettings):
+    def __str__(self):
+        return pformat(self.dict(), indent=4)

@@ -1,22 +1,33 @@
 from datetime import datetime
-from pydantic import BaseSettings
+from pydantic import validator
+from fluvii.config_bases import FluviiConfigBase
+from typing import Optional
+from fluvii.sqlite import SqliteConfig
 
 
-class FluviiConfig(BaseSettings):
+class FluviiAppConfig(FluviiConfigBase):
     # - values also passed to other components/configs
     name: str = 'FluviiApp'
-    hostname: str = f'{name}_{datetime.timestamp(datetime.now())}'
+    hostname: Optional[str] = None
+
+    # related configs
+    sqlite_config: Optional[SqliteConfig] = SqliteConfig()
 
     # - Tabling
-    # --- Recommended to change
-    table_folder_path: str = '/tmp'
-    # --- Sufficient Defaults
-    table_changelog_topic: str = f'{name}__changelog'
+    table_changelog_topic: Optional[str] = None
     table_recovery_multiplier: int = 10
+
+    @validator('hostname')
+    def set_hostname(cls, value, values):
+        if not value:
+            return f'{values["name"]}_{datetime.timestamp(datetime.now())}'
+        return value
+
+    @validator('table_changelog_topic')
+    def set_changelog_topic(cls, value, values):
+        if not value:
+            return f'{values["name"]}__changelog'
+        return value
 
     class Config:
         env_prefix = "FLUVII_APP_"
-
-    def get_auth(self, client_type):
-        creds = {cred: self.__getattribute__(f'auth_{client_type}_{cred}') for cred in ['username', 'password', 'oauth_scope']}
-        return {k: v for k, v in creds.items() if v}

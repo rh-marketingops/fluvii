@@ -1,13 +1,13 @@
-from typing import Optional
-from pydantic import BaseSettings
+from fluvii.config_bases import FluviiConfigBase
+from typing import Union
 
 
-class MetricsPusherConfig(BaseSettings):
+class MetricsPusherConfig(FluviiConfigBase):
     hostname: str
     kubernetes_headless_service_name: str
-    kubernetes_headless_service_port: Optional[str, int]
-    kubernetes_pod_app_port: Optional[str, int]
+    kubernetes_headless_service_port: Union[str, int]
+    kubernetes_pod_app_port: Union[str, int]
     push_rate_seconds: int = 10
 
     class Config:
-        env_prefix = "FLUVII_METRICS_PUSHER"
+        env_prefix = "FLUVII_METRICS_PUSHER_"

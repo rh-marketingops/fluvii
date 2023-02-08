@@ -42,7 +42,7 @@ class MetricsManager:
     Creates and manages Metric instances and pushes their metrics
     """
 
-    def __init__(self, config=MetricsManagerConfig(), pusher=None, auto_init=True):
+    def __init__(self, config=None, pusher=None, auto_start=True):
         """
         Initializes monitor and Metric classes
         """
@@ -57,7 +57,7 @@ class MetricsManager:
         self.new_metric('external_requests', description='Network calls to external services', additional_labels=['request_to', 'request_endpoint', 'request_type', 'is_bulk', 'status_code']),
         self.new_metric('seconds_behind', description='Elapsed time since the consumed message was originally produced')
 
-        if auto_init:
+        if auto_start:
             self.start()
 
     def __getattr__(self, name):

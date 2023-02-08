@@ -17,19 +17,25 @@ class ProducerFactory:
         return factory.obj_out
 
     def __init__(
-            self, topic_schema_dict=None, auto_start=True,
-            producer_config=ProducerConfig(), schema_registry_config=SchemaRegistryConfig(), metrics_manager_config=None):
+            self, topic_schema_dict=None,
+            producer_config=None, schema_registry_config=None, metrics_manager_config=None,
+            auto_start=True
+    ):
+        if not producer_config:
+            producer_config = ProducerConfig()
+        if not schema_registry_config:
+            schema_registry_config = SchemaRegistryConfig()
+
         self._topic_schema_dict = topic_schema_dict if isinstance(topic_schema_dict, dict) else {}
+        self._auto_start = auto_start
         self._schema_registry_config = schema_registry_config
         self._metrics_manager_config = metrics_manager_config
         self._producer_config = producer_config
-        self._schema_registry = self._set_schema_registry()
-        self._metrics_manager = self._set_metrics_manager()
-        self.obj_out = self._set_producer()
-        if auto_start:
-            self.obj_out.start()
+        self._schema_registry = self._make_schema_registry()
+        self._metrics_manager = self._make_metrics_manager()
+        self.obj_out = self._make_producer()
 
-    def _set_metrics_manager(self):
+    def _make_metrics_manager(self):
         LOGGER.info("Generating the MetricsManager component...")
         if not self._metrics_manager_config:
             try:
@@ -37,18 +43,19 @@ class ProducerFactory:
             except:
                 return None
         if self._metrics_manager_config.enable_metrics:
-            return self.metrics_cls(self._metrics_manager_config)
+            return self.metrics_cls(self._metrics_manager_config, auto_start=self._auto_start)
         return None
 
-    def _set_schema_registry(self):
+    def _make_schema_registry(self):
         LOGGER.info("Generating the SchemaRegistry component...")
-        return self.registry_cls(self._schema_registry_config)
+        return self.registry_cls(self._schema_registry_config, auto_start=self._auto_start)
 
-    def _set_producer(self):
+    def _make_producer(self):
         LOGGER.info("Generating the Producer component...")
         return self.producer_cls(
             self._producer_config,
             self._schema_registry,
             topic_schema_dict=self._topic_schema_dict,
             metrics_manager=self._metrics_manager,
+            auto_start=self._auto_start
         )

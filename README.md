@@ -118,27 +118,33 @@ One good rule of thumb for components is that they have a corresponding `config.
 For the most part, you won't have to mess with any of these directly if you use the `*Factory` classes, which will generate all
 the necessary components and their respective config objects for you! But, it's good to be aware of their existence.
 
+## `Transaction` component
 
-# Using a FluviiApp
+Although you can ignore most of the other components, you should be aware of the `Transaction` component.
+
+**`Transaction` is the component your application logic will interface with for producing and handling messages while using a `FluviiApp`**.
+
+It is aptly named because the object is very much the equivalent of a Kafka transaction, and it gets recreated each time
+a new transaction is required.
+
+You will see how this applies in the **Creating a FluviiApp** section below.
+
+Note that the state of said transaction is managed behind the scenes by the `FluviiApp`, you don't have to manage it yourself.
+
+
+# Creating a FluviiApp (via a Factory)
 
 ## `*Factory` args
-Here are the basic arguments when it comes to creating a `FluviiApp` (i.e. through a `*Factory`)
+Here are the basic arguments when it comes to creating a `FluviiApp` (through a `*Factory`)
 
 ### Args without defaults (aka direct setup)
 
-- `consume_topics_list`
+- `app_function` (arg0)
+  - This is where you hand in your business logic function. See the **Setting up your app_function** section below
+- `consume_topics_list` (arg1)
   - The topics you want to consume from
-- `produce_topic_schema_dict`
+- `produce_topic_schema_dict` (optional kwarg)
   - Optionally, the topics (and respective schema) you may produce to in the app.
-- `app_function`
-  - This is where you hand in your business logic.
-  - Typically, you consume a message and do "logic n stuff", which could include producing new messages. This function encapsulates all of that.
-  - By default, the function MUST take at minimum 1 argument, of which the first will be an injection of a `Transaction` component instance. For example,
-     ```python
-     def my_app_function(transaction_placeholder, my_arg, my_arg2):
-        pass # do stuff
-     ```
-     More on that in the **Transaction Component** secion below.
 
 ### Args with defaults - `*_config` args (aka indirect setup)
 Any arguments that end in `_config` are optional in that they generally have working defaults.
@@ -152,23 +158,20 @@ Note: any configs that are manually handed here supercede any environment config
 
 For more details, see the **Configuring _Fluvii_** section.
 
-## `Transaction` component
+## Setting up your app_function 
+The `app_function` you pass to Fluvii is the heart of your application. 
 
-**`Transaction` is the object your application logic will interface with for producing and consuming with while using a `FluviiApp`**.
+Typically, you consume a message and do "logic n' stuff", which could include producing new messages. This function encapsulates all of that. 
 
-It is aptly named because the object is very much the equivalent of a Kafka transaction, and it gets recreated each time
-a new transaction is required.
-
-Note that the state of the transaction is managed by `FluviiApp`, especially since it's batching under the hood.
-
-Assuming this:
-```python
-def my_app_function(transaction):
-   pass # do stuff
-```
-You can access the currently consumed message via `transaction.message`, or shorthand via `transaction.key()`
-
-You can produce messages via `transaction.produce(ARGS_HERE)`
+Some notes:
+- By default, the function MUST take at minimum 1 argument, of which the first will be an injection of a `Transaction` component instance at runtime. For example,
+   ```python
+   def my_app_function(transaction, my_arg, my_arg2):
+      pass # do stuff; using the transaction object throughout
+   ```
+- You can access the currently consumed message via `transaction.message`, or shorthand via `transaction.key()`
+- You can produce messages via `transaction.produce(ARGS_HERE)`
+- once the app runs through the entirety of your app_function, it will commit and consume the next message and do apply the app_function to the next message
 
 # Configuring _Fluvii_
 

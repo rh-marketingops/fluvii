@@ -7,5 +7,5 @@ class SqliteConfig(FluviiConfigBase):
     min_cache_count: int = 20000
     max_cache_count: int = 50000
 
-    class Config:
+    class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_SQLITE_"

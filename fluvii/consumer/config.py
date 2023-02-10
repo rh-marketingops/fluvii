@@ -35,7 +35,7 @@ class ConsumerConfig(KafkaConfigBase, FluviiConfigBase):
             return (values["timeout_minutes"] * 60) // 2
         return value
 
-    class Config:
+    class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_CONSUMER_"
 
     def as_client_dict(self):

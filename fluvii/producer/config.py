@@ -17,7 +17,7 @@ class ProducerConfig(KafkaConfigBase, FluviiConfigBase):
     # fluvii settings
     schema_library_root: Optional[str] = None
 
-    class Config:
+    class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_PRODUCER_"
 
     def as_client_dict(self):

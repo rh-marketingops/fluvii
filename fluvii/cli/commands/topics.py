@@ -32,8 +32,8 @@ def create_topics(topic_config_dict, topic_list, config_dict):
         if config_dict:
             config_dict = json.loads(config_dict)
         else:
-            click.echo('There were no configs defined; using defaults of {partitions=3, replication_factor=3}')
-            config_dict = {'partitions': 3, 'replication_factor': 3}
+            click.echo('There were no configs defined; using defaults of {partitions=3, replication.factor=3}')
+            config_dict = {'partitions': 3, 'replication.factor': 3}
         topic_config_dict = {topic: config_dict for topic in topic_list}
     click.echo(f'Creating topics {list(topic_config_dict.keys())}')
     FluviiToolbox().create_topics(topic_config_dict)
@@ -73,9 +73,11 @@ def consume_topics(topic_offset_dict, output_filepath):
 @click.option("--topic-schema-dict", type=str, required=True)
 @click.option("--input-filepath", type=click.File("r"), required=True)
 @click.option("--topic-override", type=str, required=False)
-def produce_message(topic_schema_dict, input_filepath, topic_override):
+@click.option("--use-given-partitions", is_flag=True)
+def produce_message(topic_schema_dict, input_filepath, topic_override, use_given_partitions):
     FluviiToolbox().produce_messages(
         json.loads(topic_schema_dict),
         json.loads(input_filepath.read()),
-        topic_override
+        topic_override=topic_override,
+        use_given_partitions=use_given_partitions
     )

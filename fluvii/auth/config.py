@@ -13,7 +13,7 @@ class AuthKafkaConfig(KafkaConfigBase, FluviiConfigBase):
     mechanisms: Literal['PLAIN', 'OAUTHBEARER'] = 'OAUTHBEARER' if oauth_url else 'PLAIN'
     protocol: Literal['SASL_SSL'] = 'SASL_SSL'
 
-    class Config:
+    class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_AUTH_KAFKA_"
 
     def _get_oauth_token(self, required_arg):

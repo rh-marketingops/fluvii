@@ -171,7 +171,7 @@ Some notes:
    ```
 - You can access the currently consumed message via `transaction.message`, or shorthand via `transaction.key()`
 - You can produce messages via `transaction.produce(ARGS_HERE)`
-- once the app runs through the entirety of your app_function, it will commit and consume the next message and do apply the app_function to the next message
+- once the app runs through the entirety of your app_function, it will commit the current message and apply the function to the next message...and so on.
 
 # Configuring _Fluvii_
 

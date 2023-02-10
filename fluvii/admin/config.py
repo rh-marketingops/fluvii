@@ -13,7 +13,7 @@ class AdminConfig(KafkaConfigBase, FluviiConfigBase):
     # client settings
     urls: str
 
-    class Config:
+    class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_ADMIN_"
 
     def as_client_dict(self):

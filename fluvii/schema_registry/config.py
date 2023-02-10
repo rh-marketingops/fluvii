@@ -12,5 +12,5 @@ class SchemaRegistryConfig(FluviiConfigBase):
     username: Optional[str] = None
     password: Optional[SecretStr] = None
 
-    class Config:
+    class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_SCHEMA_REGISTRY_"

@@ -21,7 +21,7 @@ class TopicDumperApp(FluviiMultiMessageApp):
 
     def _get_partition_assignment(self):
         LOGGER.debug('Getting partition assignments...')
-        self._consumer.poll(5)
+        self._consumer.consume(timeout=5)  # enables seeking
         partitions = self._consumer.assignment()  # Note: this actually can change in-place as partitions get assigned in the background!
         assign_count_prev = 0
         checks = 2
@@ -40,7 +40,7 @@ class TopicDumperApp(FluviiMultiMessageApp):
         self._get_partition_assignment()  # mostly just to ensure we can seek
         for topic, partitions in self._consume_topics_dict.items():
             for p, offset in partitions.items():
-                watermarks = self._consumer.get_watermark_offsets(TopicPartition(topic=topic, partition=int(p)))
+                watermarks = self._consumer.get_watermark_offsets(TopicPartition(topic=topic, partition=p))
                 if offset == 'earliest':
                     offset = watermarks[0]
                 elif offset == 'latest':
@@ -48,7 +48,12 @@ class TopicDumperApp(FluviiMultiMessageApp):
                 elif int(offset) < watermarks[0]:
                     offset = watermarks[0]
                 LOGGER.debug(f'Seeking {topic} p{p} to offset {offset}')
-                self._consumer.seek(TopicPartition(topic=topic, partition=int(p), offset=offset))
+                self._consumer.seek(TopicPartition(topic=topic, partition=p, offset=offset))
+        # ensure the accidently consumed message is also reversed (due to the poll required)
+        if self._consumer.message:
+            t = self._consumer.message.topic()
+            if p := self._consumer.message.partition() not in self._consume_topics_dict[t]:
+                self._consumer.seek(TopicPartition(topic=t, partition=p, offset=self._consumer.message.offset()))
 
     def _finalize_app_batch(self):
         if self._app_function:
@@ -82,7 +87,9 @@ class TopicDumperAppFactory(FluviiMultiMessageAppFactory):
         return super()._make_consumer()
 
     def __init__(self, consume_topics_dict, *args, app_function=None, **kwargs):
+        consume_topics_dict = {topic: {int(p): o for p, o in part_offset.items()} for topic, part_offset in consume_topics_dict.items()}
         self._consume_topics_dict = consume_topics_dict
+
         super().__init__(app_function, list(consume_topics_dict.keys()), *args, **kwargs)
 
     def _return_class(self):

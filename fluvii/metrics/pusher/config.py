@@ -9,5 +9,5 @@ class MetricsPusherConfig(FluviiConfigBase):
     kubernetes_pod_app_port: Union[str, int]
     push_rate_seconds: int = 10
 
-    class Config:
+    class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_METRICS_PUSHER_"

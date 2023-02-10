@@ -147,7 +147,7 @@ class FluviiToolbox(ProducerFactory, ConsumerFactory):
             self._consumer_config = ConsumerConfig()
         self._consume_topics_list = consume_topics_list
 
-    def produce_messages(self, topic_schema_dict, message_list, topic_override=None):
+    def produce_messages(self, topic_schema_dict, message_list, topic_override=None, use_given_partitions=False):
         self._prepare_producer(topic_schema_dict)
         producer = self._make_producer()
         LOGGER.info('Producing messages...')
@@ -157,7 +157,10 @@ class FluviiToolbox(ProducerFactory, ConsumerFactory):
             for msg in message_list:
                 msg['topic'] = topic_override
         for message in message_list:
-            message = {k: message.get(k) for k in ['key', 'value', 'headers', 'topic']}
+            keyset = ['key', 'value', 'headers', 'topic']
+            if use_given_partitions:
+                keyset.append('partition')
+            message = {k: message.get(k) for k in keyset}
             producer.produce(message.pop('value'), **message)
             poll += 1
             if poll >= 1000:

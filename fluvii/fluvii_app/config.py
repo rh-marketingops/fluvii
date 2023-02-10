@@ -29,5 +29,5 @@ class FluviiAppConfig(FluviiConfigBase):
             return f'{values["name"]}__changelog'
         return value
 
-    class Config:
+    class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_APP_"

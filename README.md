@@ -1,38 +1,29 @@
-### Join us on Slack!
+## Join us on Slack!
 
 Feel free to join our [Fluvii Slack Community!](https://join.slack.com/t/fluvii/shared_invite/zt-1j9hjm7lh-iowP9Z9vE94HAzNmUBfbbQ)
 
-### State of Fluvii
+This will be the easiest way to get assistance from us should you need it =)
 
-We feel _Fluvii_ is now stable enough that you can reliably test it out...maybe even run it in production
-with some low-stakes use cases if you're so brave! 
+# State of Fluvii as of v1.0.0
 
-Our team at Red Hat runs our production systems on it.
+We feel _Fluvii_ is now stable enough that you can reliably use it. Our team at Red Hat runs our production 
+systems on it. 
 
-That being said, it's still in a fairly transitional state with improvements across the board (focusing on stability
-first and foremost), so don't be surprised if there are still numerous under-the-hood
-refactors and improvements!
+Most of the major bugs have been stamped out, but like with anything, there are always hard-to-catch
+edge cases. We try to fix these issues as we find them, and they are becoming increasingly rare!
 
-On that note...
-
-### Things in the Pipeline
-
-We don't envision the api of the library changing much barring feature additions, 
-which is more down the road. That being said, configuration is likely to be overhauled/streamlined in
-the near future.
+## Things in the Pipeline
 
 Here's what to expect over the next 3-6 months (~H1 of 2023):
 
-- Unit Tests
-- Better general documentation
-- Improved configuration options and structure
+- Proper Unit/Integration Testing
+- Improved general documentation
 - Contribution Guide and tooling
 - Continued stability improvements around rebalancing (specifically `FluviiTableApp`)
-- More usage examples in README
 
 # Installation
 
-`pip intall fluvii`
+`pip install fluvii`
 
 # What is _Fluvii_?
 
@@ -43,133 +34,230 @@ _Fluvii_ was originally written as a simpler alternative for the other popular P
 Much like Faust, _Fluvii_ offers _similar_ functionality to the Kafka-Streams java client; 
 it's likely no surpise that "Fluvii" translates to "streams" in Latin!
 
-We designed _Fluvii_ after using Faust/Kafka extensively; we found that in most cases, we didn't
-need anything fancy to accomplish 95% of our work, which included Exactly Once Semantics (aka transactions) and simple tabling. 
-
-As such, we wanted an interface that required minimal interaction/repetition, 
-yet offered the ability to easily extend it (or manually handle anything) when needed.
+We like to think of _Fluvii_ as a simplified kafka-streams; it was designed to make Exactly Once Semantics (aka transactions) 
+and basic state storage (aka "tabling") require as little code as possible.
 
 **We also take full advantage of transactions by handling multiple consumed/produced messages at once per transaction,
-significantly cutting down on I/O, which tremendously improves throughput!**
+significantly cutting down on I/O, which can tremendously improve throughput!**
 
 See below for further elaborations on _Fluvii_'s use-cases.
 
 ## _Fluvii_ or Faust?
 
+We designed _Fluvii_ after using Faust/Kafka extensively; we found that in most cases, we didn't
+need most of the functionality provided by Faust to accomplish 95% of our work. We imagine this will be true for you, too!
+
+As such, we wanted an interface that required minimal interaction/repetition, 
+yet offered the ability to easily extend it (or manually handle anything) when needed.
+
 The main reason we wrote _Fluvii_ was to replace Faust, for a few reasons:
-1. Faust is more monolithic in design; it's not fully intended to be run in a containerized (i.e. Kubernetes) environment. It supports it, but it's not ideal...we ran into plenty of operational issues.
-2. Faust is fairly complex/heavy; it's difficult to extend (especially since it's `async`) and was clearly designed to additionally integrate with other systems/libraries at Robinhood.
-3. The underlying confluent libraries [librdkafka](https://github.com/edenhill/librdkafka) and [confluent-kafka-python](https://github.com/confluentinc/confluent-kafka-python) are active, maintained, and easy to iterate on.
-4. Most importantly, the original project is dead, and there were (at the time) many bugs. There are [other forks](https://github.com/faust-streaming/faust) being maintained, but when you combine the above points, we felt it prudent to design something new!
+1. Faust is more monolithic in design:
+   1. It's very much its own orchestrator via agents, which if you use your own orchestrator (like Kubernetes), it creates unneccesary redundancy and complexity.
+   2. To help enable this orchestration, Faust is `async`, making it difficult to debug and extend.
+2. Faust is fairly bloated; it was likely designed to easily integrate with other existing event systems at Robinhood.
+3. The original project (and supporting libraries) have been dead for a long time. There are [other forks](https://github.com/faust-streaming/faust) being maintained, but when you combine the above points, we felt it prudent to design something new!
 
 All that being said, you might still choose Faust if:
 
-1. You prefer how Faust manages its "clients" via workers and agents.
+1. You prefer how Faust operates as an orchestrator, managing kafka clients via workers and agents.
 2. You have a beefy server to run it on...it may perform faster overall than a bunch of `Fluvii` apps.
 3. You're happy with the current feature set Faust offers, which is arguably a little larger than _Fluvii_ since it has rolling table windows.
-4. You want a fairly mature/flexible interface and configuration, Faust is far superior in this regard compared to _Fluvii_.
+4. You want a fairly flexible interface and configuration options, _Fluvii_ is still maturing in this regard.
 5. You want a testing framework; Faust has a built-in testing framework...it's not fool-proof, but it's useful.
 
 ## Operational Assumptions of _Fluvii_
 
-_Fluvii_ is still in its infancy, thus there are several aspects of it that lack extensibility.
-
-Right now, _Fluvii_ assumes/defaults to: 
+_Fluvii_ assumes/defaults to: 
 
 - Using a schema-registry
 - Using avro schemas (see examples for format)
-- Using Prometheus metrics (and a push-gateway for app metrics)
-- Using Sqlite as your table database
-- Using SASL (or nothing) as your auth scheme
 - 1 schema per topic
 - If tabling, each app that is part of the same consumer group has a shared storage point (like a mounted drive in Kubernetes).
 
-Most of these will eventually be generalized to handle alternatives.
+_Fluvii_ also assumes/defaults to these, but these are likely to extend/grow: 
+
+- Using Prometheus metrics (and a push-gateway for app metrics); **the metrics are turned off by default.**
+- Using Sqlite as your table database (which also changes the table storage point above)
+- Using SASL, Oauth, or nothing as your authentication scheme
 
 
-# How to Use _Fluvii_
+# Getting started with _Fluvii_
 
-There are two primary ways to you'll probably use _Fluvii_:
 
-1. (most common) `FluviiApp` or `FluviiTableApp` (which might include extending).
-2. Using the `Producer` and `Consumer` classes for more basic use cases.
+## Understanding `*Factory` classes
+In general, you'll be using "Factory" classes, which will generate the objects you will interface with.
 
-Here's a breakdown of _Fluvii_, it's components, and how to use it.  
+They basically encapsulate the configuration step of their respective non-factory object; 
+i.e. `FluviiAppFactory` helps generate a fully-configured `FluviiApp` instance.
 
-## Understanding the Components
+The main ones to focus on would be:
+- `FluviiAppFactory`
+- `FluviiTableAppFactory`
+- `ProducerFactory`
 
-_Fluvii_ comprises several classes that work in tandem. Here is a brief summary of each of
-the major ones:
+(Note: though `ConsumerFactory` exists, we generally recommend using a `FluviiAppFactory` instead, which uses transactions)
 
-### Producer and Consumer
+If you are only producing messages, the producer factory is probably the cleanest way to go, else you'll likely want
+to use one of the `FluviiApp*` factories.
 
-The `Producer` and `Consumer` classes are the baseline classes. Their functionally differs little from
-the simplest implementation within the _confluent-kafka-python_ library.
+TL;DR `FluviiAppFactory` will likely be your one-stop shop, which makes a `FluviiApp` for you!
 
-`Consumer` is very unlikely to be used because you
-can simply use `FluviiApp` instead and get Exactly-Once guarantees with it.
+## Understanding "Components"
 
-`Producer` can be used in the use case where you aren't consuming.
+_Fluvii_ comprises several classes that work in tandem. Some classes are referred to as "components", 
+which `FluviiApp`'s coordinate and orchestrate (and some work as stand-alones, like the `Producer`). These include
+- SchemaRegistry
+- MetricsManager
+- MetricsPusher (generally auto-handled by the MetricsManager)
+- \[Transactional]Producer
+- \[Transactional]Consumer
+- \[Table]Transaction
 
-### TransactionalProducer and TransactionalConsumer
+One good rule of thumb for components is that they have a corresponding `config.py` to...well, configure them!
 
-The `TransactionalProducer` and `TransactionalConsumer` classes are intended to help manage transactional
-state for their respective functions. 
+For the most part, you won't have to mess with any of these directly if you use the `*Factory` classes, which will generate all
+the necessary components and their respective config objects for you! But, it's good to be aware of their existence.
 
-They _can_ be employed manually, but they were intended to be managed by the 
-`Transaction` class. As such, their usage is for far more advanced use-cases and not recommended.
 
-### Transaction
+# Using a FluviiApp
 
-**`Transaction` is the object your application will interface with for producing and consuming when using a `FluviiApp`**.
+## `*Factory` args
+Here are the basic arguments when it comes to creating a `FluviiApp` (i.e. through a `*Factory`)
 
-The `Transaction` class is meant to handle the interdependent state changes between the 
-`TransactionalProducer` and `TransactionalConsumer` classes. 
+### Args without defaults (aka direct setup)
+
+- `consume_topics_list`
+  - The topics you want to consume from
+- `produce_topic_schema_dict`
+  - Optionally, the topics (and respective schema) you may produce to in the app.
+- `app_function`
+  - This is where you hand in your business logic.
+  - Typically, you consume a message and do "logic n stuff", which could include producing new messages. This function encapsulates all of that.
+  - By default, the function MUST take at minimum 1 argument, of which the first will be an injection of a `Transaction` component instance. For example,
+     ```python
+     def my_app_function(transaction_placeholder, my_arg, my_arg2):
+        pass # do stuff
+     ```
+     More on that in the **Transaction Component** secion below.
+
+### Args with defaults - `*_config` args (aka indirect setup)
+Any arguments that end in `_config` are optional in that they generally have working defaults.
+
+Additionally, they are considered "indirect" because they can be set via the environment rather than using the factory argument.
+
+This somewhat artificial deliniation was made because these settings are far less likely to change between
+different application instances (among other design reasons).
+
+Note: any configs that are manually handed here supercede any environment configurations.
+
+For more details, see the **Configuring _Fluvii_** section.
+
+## `Transaction` component
+
+**`Transaction` is the object your application logic will interface with for producing and consuming with while using a `FluviiApp`**.
 
 It is aptly named because the object is very much the equivalent of a Kafka transaction, and it gets recreated each time
 a new transaction is required.
 
-Keep in mind: our transactions can include multiple consumed/produced messages!
+Note that the state of the transaction is managed by `FluviiApp`, especially since it's batching under the hood.
+
+Assuming this:
+```python
+def my_app_function(transaction):
+   pass # do stuff
+```
+You can access the currently consumed message via `transaction.message`, or shorthand via `transaction.key()`
+
+You can produce messages via `transaction.produce(ARGS_HERE)`
+
+# Configuring _Fluvii_
+
+_Fluvii_ allows you to configure its various components via environment (or directly via the config
+object itself).
+
+These component configs (i.e. any `config.py`) typically have working defaults for most of their settings, and most
+of them will not need any additional tweaking.
+
+## Configuration options
+1. Component config handed to a `*Factory` argument. 
+   - An (incomplete) example of this might look like:
+       ```python
+       app = FluviiAppFactory(consumer_config=ConsumerConfig(timeout_minutes=10))
+       ```
+2. With environment variables
+    - In general, this is the reccommended approach.
+    - You can look at each config object, with defines a prefix. For any given config value, just prepend the prefix to said value.
+    - For example, with `ConsumerConfig`: 
+      - its prefix is `FLUVII_CONSUMER_`. 
+      - It has a setting called `timeout_minutes`. 
+      - Then the respective environment variable for this setting is `FLUVII_CONSUMER_TIMEOUT_MINUTES`
+
+3. With a `.env` file, where the environment variable `FLUVII_CONFIG_DOTENV` is the filepath to it
+    - This approach uses the same setting naming scheme as in (2.)
+    - An (incomplete) example might look like:
+        ```dotenv
+        FLUVII_CONSUMER_TIMEOUT_MINUTES=10
+        FLUVII_AUTH_KAFKA_USERNAME=my_cool_username
+        ```
+
+## Configuration precidence
+
+Under the hood, Fluvii uses `Pydantic`, and as such, follows its rules for configuration precidence for each config value. 
+
+Do note that the configs only populate with actual defined values at each step, so non-defined values won't overwrite 
+previously defined ones unless you specifically define them to be empty. 
+
+Here's
+the order from highest precidence to lowest (higher supercedes anything below it):
+
+1. config object with direct arguments handed to a Factory
+2. environment variable
+3. dotenv file
+
+## Minimum configuration requirements
+
+No matter what, you will need to populate these configuration settings:
 
 ### FluviiApp
+```dotenv
+### Connection
+# Kafka Consumer/Producer
+FLUVII_PRODUCER_URLS=
+FLUVII_CONSUMER_URLS=
+# Schema Registry
+FLUVII_SCHEMA_REGISTRY_URL=
 
-`FluviiApp` is basically your entrypoint. It handles configuration and all the context/state management. 
+### This sets the consumer group name in FluviiApps
+FLUVII_APP_NAME=
 
-You will configure it with desired settings (or just use the defaults!), hand it an application function to loop on, and call `run()`... and that will be the last of your interaction!
+### ONLY IF AUTHENTICATING, else ignore...see auth config for OAUTH
+# Kafka Consumer/Producer
+FLUVII_KAFKA_AUTH_USERNAME=
+FLUVII_KAFKA_AUTH_PASSWORD=
+# Schema Registry
+FLUVII_SCHEMA_REGISTRY_USERNAME=
+FLUVII_SCHEMA_REGISTRY_PASSWORD=
+```
 
-Once running, `FluviiApp` manages `Transaction` objects; it creates, commits and aborts them as needed.
+## Other configuration suggestions
 
-### TableTransaction and FluviiTableApp
+In general, we recommend using the environment variable configuration approach.
 
-The `TableTransaction` and `FluviiTableApp` share a similar partnership as `Transaction` and `FluviiApp`.
+There is also a `FLUVII_APP_HOSTNAME` which we suggest setting to your kubernetes pod hostname, but it's not required.
 
-`TableTransaction` generally handles the writing to the table and its Kafka changelog topic.
 
-`FluviiTableApp` helps manage the Kafka and table assignments that occur from rebalancing, and initializes
-table recovery as needed.
+# Simple FluviiApp Examples
 
-You'll typically use this if you need to keep track of certain records and compare them against incoming messages.
-
-**NOTE: You can only consume from 1 topic per `FluviiTableApp`. 
-This was to keep the implementation simplier and more intuitive.**
-
-Usage does not differ much from the non-table variants.
-
-Please see the **"Important Usage Information"** section for more insight around functionality and proper usage.
-
-## Simple Examples
-
-### Initializing/running a bare-bones `FluviiApp`:
+## Initializing/running a bare-bones `FluviiApp`:
 
 Note: This example assumes you have set the few required config settings via environment variables. 
 You can find a manual configuration example further below.
 
 There are two basic components you need to initialize an app at all:
 
-- `app_function`: the logic of your application, of which the first argument (which MUST exist) is assumed to be a transaction object that will be handed to it at runtime. Additional arguments, if needed, can be handed to `app_function_arglist`.
+- `app_function` (first arg): the logic of your application, of which the first argument (which MUST exist) is assumed to be a transaction object that will be handed to it at runtime. Additional arguments, if needed, can be handed to `app_function_arglist`.
 
-
-- `consume_topics_list`: the topics you are consuming. Can be comma-separated string or python list.
+- `consume_topics_list` (second arg): the topics you are consuming. Can be comma-separated string or python list.
 
 That's it! That being said, this is if your app only consumes. To produce, you will additionally need, at minimum:
 
@@ -183,9 +271,9 @@ Then, to run the app, do:
 Altogether, that might look something like this:
 
 ```python
-from fluvii import FluviiApp
-from fluvii.transaction import Transaction
+from fluvii import FluviiAppFactory
 
+# assume the message consumed also had this schema to make it easy
 a_cool_schema = {
     "name": "CoolSchema",
     "type": "record",
@@ -197,23 +285,24 @@ a_cool_schema = {
     ]
 }
 
-init_at_runtime_thing = 'cool value' # can hand off objects you'd like to init separately, like an api session object
+# can hand off objects you'd like to init separately, like an api session object, or a heavy object built at runtime
+heavy_thing_inited_at_runtime = 'heavy thing'
 
 
-def my_app_logic(transaction: Transaction, thing_inited_at_runtime):
-    # All we're gonna do is set our field to a new value...very exciting, right?
+def my_app_logic(transaction, heavy_init_thing):
+    # All we're gonna do is set our 'cool_field' to a new value...very exciting, right?
     msg = transaction.message # can also do transaction.value() to skip a step
     cool_message_out = msg.value()
-    cool_message_out['cool_field'] = thing_inited_at_runtime #  'cool value'
+    cool_message_out['cool_field'] = heavy_init_thing #  'heavy thing'
     transaction.produce(
         {'value': cool_message_out, 'topic': 'cool_topic_out', 'key': msg.key(), 'headers': msg.headers()}
     )
     
-fluvii_app = FluviiApp(
-    app_function=my_app_logic, 
-    consume_topics_list=['test_topic_1', 'test_topic_2'],
+fluvii_app = FluviiAppFactory(
+    my_app_logic, 
+    ['test_topic_a', 'test_topic_b'],
     produce_topic_schema_dict={'cool_topic_out': a_cool_schema},
-    app_function_arglist = [init_at_runtime_thing])  # optional! Here to show functionality.
+    app_function_arglist = [heavy_thing_inited_at_runtime])  # optional! Here to show functionality.
 fluvii_app.run()
 ```
 If you're feeling really lazy, you can actually cut some the `transaction.produce()` dict arguments, as anything you
@@ -235,7 +324,7 @@ transaction.produce(cool_message_out)
 
 Just make sure your message value isn't itself a dictionary with a "value" key in this case =)
 
-### Using a table with a `FluviiTableApp`
+## Using a table with a `FluviiTableApp`
 
 Using tabling via `FLuviiTableApp` is very simple. 
 
@@ -247,8 +336,7 @@ storing the new balance for later comparisons, and producing that remaining bala
 `consumed message value` = purchase amount
 
 ```python
-from fluvii import FluviiTableApp
-from fluvii.transaction import TableTransaction
+from fluvii import FluviiTableAppFactory
 
 # -- Not used here, just so you know what the consumed messages look like
 # purchase_schema = {
@@ -270,7 +358,7 @@ account_balance_schema = {
     ]
 }
 
-def my_app_logic(transaction: TableTransaction):
+def my_app_logic(transaction):
     record = transaction.value()
     current_account_balance = float(transaction.read_table_entry()['balance'])  # looks up record via the message.key()
     purchase_amount = float(record['Purchase Amount'])
@@ -282,9 +370,9 @@ def my_app_logic(transaction: TableTransaction):
 
 
 def fluvii_table_app():
-    return FluviiTableApp(
-        app_function=my_app_logic,
-        consume_topic='purchases_made',
+    return FluviiTableAppFactory(
+        my_app_logic,
+        ['purchases_made'],
         produce_topic_schema_dict={'accounts_to_notify': account_balance_schema},
     )
 
@@ -292,11 +380,56 @@ def fluvii_table_app():
 fluvii_table_app().run()
 ```
 
-# Important Feature, Configuration and Usage Elaborations
+## Configuring a FluviiApp more explicitly (no environment set):
+
+Here, we set up a FluviiApp with required values only, and where authentication is required. 
+
+The environment has no additional configuration (aka no values set).
+
+We also change the `consumer_timeout` from the default to 10 minutes.
+```python
+
+from fluvii.fluvii_app import FluviiAppFactory, FluviiAppConfig
+from fluvii.producer import ProducerConfig
+from fluvii.consumer import ConsumerConfig
+from fluvii.auth import AuthKafkaConfig
+from fluvii.schema_registry import SchemaRegistryConfig
+
+my_schema = 'your schema here'
+
+def my_business_logic(transaction):
+    pass # do stuff to messages
+
+
+def my_fluvii_app():
+    auth_kafka_kws = {
+        'urls': 'my.broker.url0,my.broker.url1', 
+        'auth_kafka_config': AuthKafkaConfig(username='my_kafka_un', password='my_kafka_pw')
+    }
+    return FluviiAppFactory(
+        my_business_logic,
+        ['my_input_topic'],
+        produce_topic_schema_dict={'my_output_topic': my_schema},
+        fluvii_config=FluviiAppConfig(app_name='my_fluvii_app'),
+        schema_registry_config=SchemaRegistryConfig(url='my.sr.url', username='my_sr_un', password='my_sr_pw'),
+        consumer_config=ConsumerConfig(**auth_kafka_kws, timeout_minutes=10),
+        producer_config=ProducerConfig(**auth_kafka_kws),
+    )
+
+
+if __name__ == '__main__':
+    app = my_fluvii_app()
+    app.run()
+```
+
+Note that if we had set any of those values up via the environment, they would have been overwritten by what I handed here.
+
+# Important Feature and Usage Elaborations
+
+Wanna learn more? You've come to the right section!
 
 Up until now, we've only touched on the very basics to show how easy it is to get an app up and running.
-However, you should also be aware of some of the magic happening under the hood, along with configuration
-options to ensure proper use.
+However, you should also be aware of some of the magic happening under the hood.
 
 ## Important Feature Insights
 
@@ -349,43 +482,12 @@ share the same consumer group.)
 - The app can only consume from one topic (you can make an upstream "funnel" app as needed).
 - The app only has 1 table.
 - The table is keyed on the consumed message keys; you can only compare your record to the one with the same key on the table.
-- The changelog topic (which defaults to the name `{consumer_group_id}__changelog`), must have same partition count as the consumed topic.
+- The changelog topic (which defaults to the name `{FLUVII_APP_NAME}__changelog`), must have same partition count as the consumed topic.
 - Each app needs to share a storage volume.
 - Table data needs to be stored as a json/dict (it is stored via `json.dumps` and `json.load`-ed when read)
 
 In general, most of these can be overcomed by just linking different apps together since they will generally
 be pretty light.
-
-## Configuration
-
-Configuration can be handled in two different ways: via environment variables and/or specialized
-config objects. You can override the config objects at runtime if you wish.
-
-Let's take a look at the various config objects you can interact with.
-
-### ProducerConfig and ConsumerConfig
-
-The `ProducerConfig` and `ConsumerConfig` objects will contain all configs around client settings,
-and any _Fluvii_-specific functionality surrounding them. 
-
-They require a url list as an argument. They also accept an optional Auth config; see below.
-
-These are either used themselves, or handed to a `FluviiApp` instance.
-
-### Various *Auth configs
-
-There are numerous ways to authenticate with Kafka, and so you can choose the auth object that
-suits you.
-
-These are generally handed to other objects.
-
-### FluviiAppConfig
-
-The `FluviiAppConfig` can comprise any number of other various configs, and also has a few
-of its own settings.
-
-In general, you'll likely only need to adjust/hand it a few settings/config objects, as it has defaults for most
-of the other various config objects you'd normally use (or of course, just use environment variables).
 
 ## Class Usage Information
 
@@ -426,9 +528,3 @@ if you don't need to update it.
 One thing to keep in mind is the object stored in the table just needs to be a valid json (which includes dicts).
 
 Also, `FluviiTableApp` will ensure everything gets committed correctly for you just like the `FluviiApp`!
-
-# Further Examples
-
-Here's a few more examples.
-
-## Configuration example

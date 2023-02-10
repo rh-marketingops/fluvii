@@ -7,7 +7,7 @@ from fluvii.sqlite import SqliteConfig
 
 class FluviiAppConfig(FluviiConfigBase):
     # - values also passed to other components/configs
-    name: str = 'FluviiApp'
+    name: str
     hostname: Optional[str] = None
 
     # related configs

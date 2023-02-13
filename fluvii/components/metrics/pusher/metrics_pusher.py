@@ -6,8 +6,6 @@ import socket
 from prometheus_client import push_to_gateway
 import threading
 import time
-from .config import MetricsPusherConfig
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +15,7 @@ class MetricsPusher:
     Pushes metrics to a prometheus pushgateway in a Kubernetes environment
     """
 
-    def __init__(self, registry, config, auto_init=True):
+    def __init__(self, registry, config, auto_start=True):
         self._config = config
         self.registry = registry
         self.push_thread = None
@@ -25,7 +23,7 @@ class MetricsPusher:
 
         self.metrics_pod_ips = []
 
-        if auto_init:
+        if auto_start:
             self.start()
 
     def _set_metrics_pod_ips(self):

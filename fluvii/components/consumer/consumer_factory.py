@@ -1,6 +1,6 @@
 from . import Consumer, ConsumerConfig
-from fluvii.metrics.manager import MetricsManager, MetricsManagerConfig
-from fluvii.schema_registry import SchemaRegistry, SchemaRegistryConfig
+from fluvii.components.metrics import MetricsManager, MetricsManagerConfig
+from fluvii.components.schema_registry import SchemaRegistry, SchemaRegistryConfig
 import logging
 
 LOGGER = logging.getLogger(__name__)

@@ -8,11 +8,11 @@ if len(argv) > 1:
 
 import json
 from shutil import rmtree
-from fluvii.kafka_tools.fluvii_toolbox import FluviiToolbox
+from fluvii import FluviiToolbox
 from multiprocessing import Process
 from time import sleep
-from fluvii.fluvii_app import FluviiTableAppFactory
-from fluvii.sqlite import SqliteFluvii, SqliteConfig
+from fluvii import FluviiTableAppFactory
+from fluvii.components.sqlite import SqliteFluvii, SqliteConfig
 
 my_schema = {
     "name": "CoolSchema",

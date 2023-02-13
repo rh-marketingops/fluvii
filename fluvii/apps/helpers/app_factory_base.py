@@ -1,8 +1,12 @@
-from fluvii.consumer import TransactionalConsumer, ConsumerConfig
-from fluvii.producer import TransactionalProducer, ProducerConfig
-from fluvii.schema_registry import SchemaRegistry, SchemaRegistryConfig
-from fluvii.metrics import MetricsManager, MetricsManagerConfig
-from .config import FluviiAppConfig
+from fluvii.components import (
+    ConsumerConfig,
+    ProducerConfig,
+    SchemaRegistryConfig,
+    SchemaRegistry
+)
+from fluvii.apps import FluviiAppConfig
+from fluvii.apps.transactions import TransactionalProducer, TransactionalConsumer
+from fluvii.components.metrics import MetricsManager, MetricsManagerConfig
 import logging
 
 LOGGER = logging.getLogger(__name__)

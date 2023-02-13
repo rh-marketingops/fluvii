@@ -444,7 +444,7 @@ Want some help managing topics, or need an easy way to produce or consume on the
 # CLI
 
 Right now, the CLI is fairly basic, but does allow you to perform similar actions to the `FluviiToolbox` (in fact,
-it's basically just a CLI interface for it.) 
+it's basically an API for the CLI.) 
 
 As such, you can do all the same things the `FluviiToolbox` can do! 
 

@@ -1,5 +1,5 @@
 from confluent_kafka import TopicPartition, KafkaException
-from fluvii.sqlite import SqliteFluvii
+from fluvii.components.sqlite import SqliteFluvii
 from fluvii.exceptions import TransactionNotRequired
 from datetime import datetime
 import logging

@@ -107,22 +107,18 @@ TL;DR `FluviiAppFactory` will likely be your one-stop shop, which makes a `Fluvi
 _Fluvii_ comprises several classes that work in tandem. Some classes are referred to as "components", 
 which `FluviiApp`'s coordinate and orchestrate (and some work as stand-alones, like the `Producer`). These include
 - SchemaRegistry
-- MetricsManager
-- MetricsPusher (generally auto-handled by the MetricsManager)
-- \[Transactional]Producer
-- \[Transactional]Consumer
-- \[Table]Transaction
+- MetricsManager/Pusher
+- Producer
+- Consumer
 
 One good rule of thumb for components is that they have a corresponding `config.py` to...well, configure them!
 
 For the most part, you won't have to mess with any of these directly if you use the `*Factory` classes, which will generate all
 the necessary components and their respective config objects for you! But, it's good to be aware of their existence.
 
-## `Transaction` component
+## `Transaction` objects
 
-Although you can ignore most of the other components, you should be aware of the `Transaction` component.
-
-**`Transaction` is the component your application logic will interface with for producing and handling messages while using a `FluviiApp`**.
+**`Transaction`s will be the object your application logic interfaces with for producing and handling messages while using any `FluviiApp` variant**.
 
 It is aptly named because the object is very much the equivalent of a Kafka transaction, and it gets recreated each time
 a new transaction is required.
@@ -133,6 +129,10 @@ Note that the state of said transaction is managed behind the scenes by the `Flu
 
 
 # Creating a FluviiApp (via a Factory)
+
+A `FluviiApp` is any of the `*_app.py` file names located in the library folder `/fluvii/apps`.
+
+Each `FluviiApp` has a corresponding `Factory` associated with it, which is used to set up an instance of said app for you.
 
 ## `*Factory` args
 Here are the basic arguments when it comes to creating a `FluviiApp` (through a `*Factory`)
@@ -203,15 +203,15 @@ of them will not need any additional tweaking.
         FLUVII_AUTH_KAFKA_USERNAME=my_cool_username
         ```
 
-## Configuration precidence
+## Configuration precedence
 
-Under the hood, Fluvii uses `Pydantic`, and as such, follows its rules for configuration precidence for each config value. 
+Under the hood, Fluvii uses `Pydantic`, and as such, follows its rules for configuration precedence for each config value. 
 
 Do note that the configs only populate with actual defined values at each step, so non-defined values won't overwrite 
 previously defined ones unless you specifically define them to be empty. 
 
 Here's
-the order from highest precidence to lowest (higher supercedes anything below it):
+the order from highest precedence to lowest (higher supercedes anything below it):
 
 1. config object with direct arguments handed to a Factory
 2. environment variable
@@ -427,6 +427,127 @@ if __name__ == '__main__':
 
 Note that if we had set any of those values up via the environment, they would have been overwritten by what I handed here.
 
+# FluviiToolbox
+
+Want some help managing topics, or need an easy way to produce or consume on the fly? `FluviiToolbox` has you covered!
+
+`FluviiToolbox` has multiple features, including 
+- listing all topics on the broker, including the configs for them
+- producing a set of messages from a dict
+- consuming all messages from a topic, including starting from a specific offset
+- creating/altering/deleting topics
+
+### Configuring `FluviiToolbox`
+
+`FluviiToolbox` uses the same configs as the producer and consumer. Just make sure those are set!
+
+# CLI
+
+Right now, the CLI is fairly basic, but does allow you to perform similar actions to the `FluviiToolbox` (in fact,
+it's basically just a CLI interface for it.) 
+
+As such, you can do all the same things the `FluviiToolbox` can do! 
+
+### Configuring the CLI
+
+Same as `FluviiToolbox`.
+
+## CLI examples
+
+### Producing to a topic from a json
+
+First, you must always provide a `topic_schema_dict` as an argument, but the allowed values depend on what you have configured.
+
+Assume you have a schema, saved two different ways, at the following filepaths:
+- `/home/my_schemas/cool_schema.py`, where it's just a python dict (named `my_cool_schema`)
+- `/home/my_schemas/cool_schema.avro` (.json is also valid)
+
+The schema is:
+```json
+{
+    "name": "CoolSchema",
+    "type": "record",
+    "fields": [
+        {
+            "name": "cool_field",
+            "type": "string"
+        }
+    ]
+}
+```
+
+There is an optional producer config value `schema_library_root` (so `FLUVII_PRODUCER_SCHEMA_LIBRARY_ROOT`) that can
+be set to a folder path where your schemas are contained.
+
+If _not_ set, you can only produce messages by setting `topic_schema_dict` to the following:
+
+- `'{"my_topic": "/home/my_schemas/schema.avro"}'`
+- `'{"my_topic": {"name": "CoolSchema", "type": "record", "fields": [{"name": "cool_field","type": "string"}]}'`
+
+However, assume you have set `FLUVII_PRODUCER_SCHEMA_LIBRARY_ROOT=/home/my_schemas`. This additionally enables you 
+to both import it as a python object using the full pythonpath the object from that directory, and use relative filepaths:
+
+- `'{"my_topic": "cool_schema.avro"}'`
+- `'{"my_topic": "my_schemas.cool_schema.my_cool_schema"}'`
+
+If you have your own schema library/package, this can be a nice option to utilize!
+
+Anyway, let's say you wish to produce the following 2 messages in `/home/msgs/inputs.json` using said schema:
+
+```json
+[
+  {
+    "key": "my_key",
+    "value": {"cool_field": "value0"},
+    "headers": {"my_header": "header_value0"},
+    "topic": "my_topic"
+  },
+  {
+    "key": "other_key",
+    "value": {"cool_field": "other_value0"},
+    "headers": {"my_header": "header_value1"},
+    "topic": "my_topic"
+  }
+]
+```
+then the full command is: 
+
+`fluvii topics produce --topic-schema-dict '{"my_topic": "cool_schema.avro"}' --input-filepath /home/msgs/inputs.json`
+
+If you don't want to produce the given topic in the message body, you can also override it with a new topic via the following argument:
+
+`--topic-override "a_different_topic"`
+
+
+### Consuming topics and dumping to a json
+
+Consuming is relatively simple, but it does have some additional flexibility should you need it.
+
+Basically, there is an argument named `topic-offset-dict`, which takes a dict of offsets should you need to specify a
+starting point for any given partition. Otherwise, it defaults to `earliest`. 
+
+Here is an example where we consume two topics, and we want to start from offset 100 for partition 1 and 2 for "topic_2", 
+otherwise we want everything else.
+
+`fluvii topics consume --topic-offset-dict '{"topic_1": {}, "topic_2": {"1": 100, "2": 100}' --output-filepath /home/msgs/data_out.json`
+
+### Creating topics
+
+When creating topics, it is recommended to set, at minimum, your `partitions` and `replication.factor`. 
+
+You can look up all potential settings via [kafka's documentation](https://kafka.apache.org/documentation/#topicconfigs).
+
+Here is an example where we create two topics, where one is compacted. You can look up other topic configurations via Kafka's documentation.
+
+`fluvii topics create --topic-config-dict '{"topic_1": {"partitions": 2, "replication.factor": 2}, "topic_2": {"partitions": 3, "replication.factor": 2, "cleanup.policy": "compact"}}'`
+
+### Deleting topics
+
+As easy as it gets!
+
+`fluvii topics delete --topic-list 'topic_1,topic_2'`
+
+
 # Important Feature and Usage Elaborations
 
 Wanna learn more? You've come to the right section!
@@ -434,9 +555,7 @@ Wanna learn more? You've come to the right section!
 Up until now, we've only touched on the very basics to show how easy it is to get an app up and running.
 However, you should also be aware of some of the magic happening under the hood.
 
-## Important Feature Insights
-
-### Processing Guarantees
+## Processing Guarantees
 
 ALl _FluviiApp_ iterations use transactions under the hood, which translates to Exactly Once Semantics. 
 
@@ -445,9 +564,9 @@ after the changelog message is committed. If the app were to somehow crash befor
 table, it will recover the missing writes from the changelog topic.
 
 
-### Batching
+## Batching
 
-All _FluviiApp_ iterations do batching under the hood through transactions. _Fluvii_ will consume multiple messages at once, and feed them
+All _FluviiApp_ iterations batch under the hood through transactions. _Fluvii_ will consume multiple messages at once, and feed them
 individuallyy to the `app_function`. Resulting produces will be queued via the transaction itself, and the consumed offsets will get committed
 along with them once the configured maximum batch count threshold is hit.
 
@@ -455,7 +574,7 @@ While this could mean you have to reprocess a batch of messages again if there w
 is well worth this rare inconvenience.
 
 
-### _FluviiTableApp_ Caching
+## _FluviiTableApp_ Caching
 
 There are two different caching mechanisms happpening in `FluviiTableApp` with respect to tables.
 
@@ -471,7 +590,7 @@ This was implemented for two related reasons, both around utilizing networked st
 2. to reduce network I/O
 
 
-### _FluviiTableApp_ limitations
+## _FluviiTableApp_ limitations
 
 To keep implementation around tabling simple, there were some design choices made that incurred 
 some limitations, most of which have fairly straightforward options for overcoming. Most of these are because of the complexities
@@ -517,7 +636,7 @@ If you need more manual access to things, the `TransactionalConsumer`, `Transact
 passed to every transaction object, so you'll always have access to whatever objects you need should the need arise.
 
 You can also refresh the transaction object to re-use should it prove difficult to manage your logic
-by remaking the transaction object.
+by remaking the transaction object, but this is certainly a more advanced use-case.
 
 ### TableTransaction
 

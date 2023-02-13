@@ -1,10 +1,11 @@
-from fluvii.admin import Admin, AdminConfig
-from fluvii.consumer.consumer_factory import ConsumerFactory
-from fluvii.producer.producer_factory import ProducerFactory
-from fluvii.producer import ProducerConfig
-from fluvii.consumer import ConsumerConfig
-from fluvii.schema_registry import SchemaRegistryConfig
-# from fluvii.fluvii_app.app_factory_base import AppFactory, SchemaRegistryConfig, ProducerConfig, ConsumerConfig
+from fluvii.components.admin import Admin, AdminConfig
+from fluvii.components import (
+    ConsumerFactory,
+    ProducerFactory,
+    ProducerConfig,
+    ConsumerConfig,
+    SchemaRegistryConfig
+)
 from confluent_kafka.admin import NewTopic, ConfigResource
 import logging
 

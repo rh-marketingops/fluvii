@@ -1,7 +1,7 @@
 from typing import Literal, Optional
 from pydantic import validator
 from fluvii.config_bases import KafkaConfigBase, FluviiConfigBase
-from fluvii.auth import AuthKafkaConfig, get_auth_kafka_config
+from fluvii.components.auth import AuthKafkaConfig, get_auth_kafka_config
 
 
 class ConsumerConfig(KafkaConfigBase, FluviiConfigBase):

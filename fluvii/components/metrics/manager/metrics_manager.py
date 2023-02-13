@@ -3,7 +3,7 @@ Container for standardized application monitoring gauges
 """
 from prometheus_client import Gauge, CollectorRegistry
 from .config import MetricsManagerConfig
-from fluvii.metrics.pusher import MetricsPusher, MetricsPusherConfig
+from fluvii.components.metrics.pusher import MetricsPusher, MetricsPusherConfig
 from pydantic.error_wrappers import ValidationError
 
 

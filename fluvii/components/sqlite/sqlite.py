@@ -14,20 +14,20 @@ LOGGER = logging.getLogger(__name__)
 
 # TODO: make a non-fluvii version for just reading tables like a typical client
 class SqliteFluvii:
-    def __init__(self, table_name, sqlite_config, auto_start=True, allow_commits=False):
+    def __init__(self, table_name, config, auto_start=True, allow_commits=False):
         self._allow_commits = allow_commits
-        self._max_pending_writes_count = sqlite_config.max_pending_writes_count
-        self._min_cache_count = sqlite_config.min_cache_count
-        self._max_cache_count = sqlite_config.max_cache_count
+        self._max_pending_writes_count = config.max_pending_writes_count
+        self._min_cache_count = config.min_cache_count
+        self._max_cache_count = config.max_cache_count
         self.db = None
         self.table_name = table_name
         self.db_cache = {}
         self.offset = None
         self.write_cache = {}
         self._current_read = (None, '')
-        makedirs(sqlite_config.table_directory, exist_ok=True)
-        self.db_folder = Path(f"{sqlite_config.table_directory}").absolute()
-        self.full_db_path = Path(f"{sqlite_config.table_directory}/{table_name}.sqlite").absolute()
+        makedirs(config.table_directory, exist_ok=True)
+        self.db_folder = Path(f"{config.table_directory}").absolute()
+        self.full_db_path = Path(f"{config.table_directory}/{table_name}.sqlite").absolute()
 
         if auto_start:
             self._init_db()

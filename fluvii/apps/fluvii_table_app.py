@@ -1,7 +1,7 @@
 from fluvii.exceptions import PartitionsAssigned, FinishedTransactionBatch, GracefulTransactionFailure, FatalTransactionFailure, TransactionCommitted, TransactionNotRequired
-from fluvii.transaction import TableTransaction
+from .transactions import TableTransaction
 from .fluvii_app import FluviiApp, FluviiAppFactory
-from .rebalance_manager import TableRebalanceManager
+from .helpers import TableRebalanceManager
 from datetime import datetime
 import logging
 

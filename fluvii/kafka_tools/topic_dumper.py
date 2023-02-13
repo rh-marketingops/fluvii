@@ -1,4 +1,4 @@
-from fluvii.fluvii_app.fluvii_multi_msg_app import FluviiMultiMessageApp, FluviiMultiMessageAppFactory
+from fluvii.apps.fluvii_multi_msg_app import FluviiMultiMessageAppFactory, FluviiMultiMessageApp
 from confluent_kafka import TopicPartition
 import logging
 from time import sleep

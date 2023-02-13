@@ -2,7 +2,7 @@ from datetime import datetime
 from pydantic import validator
 from fluvii.config_bases import FluviiConfigBase
 from typing import Optional
-from fluvii.sqlite import SqliteConfig
+from fluvii.components.sqlite import SqliteConfig
 
 
 class FluviiAppConfig(FluviiConfigBase):

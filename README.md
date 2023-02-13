@@ -393,11 +393,14 @@ The environment has no additional configuration (aka no values set).
 We also change the `consumer_timeout` from the default to 10 minutes.
 ```python
 
-from fluvii.fluvii_app import FluviiAppFactory, FluviiAppConfig
-from fluvii.producer import ProducerConfig
-from fluvii.consumer import ConsumerConfig
-from fluvii.auth import AuthKafkaConfig
-from fluvii.schema_registry import SchemaRegistryConfig
+from fluvii import (
+    FluviiAppFactory, 
+    FluviiAppConfig,
+    ProducerConfig,
+    ConsumerConfig,
+    AuthKafkaConfig,
+    SchemaRegistryConfig
+)
 
 my_schema = 'your schema here'
 

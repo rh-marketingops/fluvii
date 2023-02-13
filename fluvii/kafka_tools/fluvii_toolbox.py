@@ -61,6 +61,7 @@ class FluviiToolbox(ProducerFactory, ConsumerFactory):
             if valid_only:
                 return not topic.startswith('__') and 'schema' not in topic
             return True
+        self._set_admin()
         topics = sorted([t for t in self.admin.list_topics().topics if _valid(t)])
         if include_configs:
             futures_dict = self.admin.describe_configs([ConfigResource(2, topic) for topic in topics])

@@ -132,7 +132,7 @@ Note that the state of said transaction is managed behind the scenes by the `Flu
 
 A `FluviiApp` is any of the `*_app.py` file names located in the library folder `/fluvii/apps`.
 
-Each `FluviiApp` has a corresponding `Factory` associated with it, which is used to set up an instance of said app for you.
+As previously mentioned, `FluviiApp`s have a corresponding `Factory` associated with them; we will outline their usage below.
 
 ## `*Factory` args
 Here are the basic arguments when it comes to creating a `FluviiApp` (through a `*Factory`)
@@ -164,7 +164,7 @@ The `app_function` you pass to Fluvii is the heart of your application.
 Typically, you consume a message and do "logic n' stuff", which could include producing new messages. This function encapsulates all of that. 
 
 Some notes:
-- By default, the function MUST take at minimum 1 argument, of which the first will be an injection of a `Transaction` component instance at runtime. For example,
+- By default, the function MUST take at minimum 1 argument, of which the first will be an injection of a `Transaction` object instance at runtime. For example,
    ```python
    def my_app_function(transaction, my_arg, my_arg2):
       pass # do stuff; using the transaction object throughout
@@ -177,6 +177,8 @@ Some notes:
 
 _Fluvii_ allows you to configure its various components via environment (or directly via the config
 object itself).
+
+`FluviiApp`s also have an associated config object.
 
 These component configs (i.e. any `config.py`) typically have working defaults for most of their settings, and most
 of them will not need any additional tweaking.
@@ -210,8 +212,7 @@ Under the hood, Fluvii uses `Pydantic`, and as such, follows its rules for confi
 Do note that the configs only populate with actual defined values at each step, so non-defined values won't overwrite 
 previously defined ones unless you specifically define them to be empty. 
 
-Here's
-the order from highest precedence to lowest (higher supercedes anything below it):
+Here's the order from highest precedence to lowest (higher supercedes anything below it):
 
 1. config object with direct arguments handed to a Factory
 2. environment variable

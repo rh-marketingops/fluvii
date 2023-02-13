@@ -460,7 +460,7 @@ Same as `FluviiToolbox`.
 
 ### Producing to a topic from a json
 
-First, you must always provide a `topic_schema_dict` as an argument, but the allowed values depend on what you have configured.
+First, you must always provide a `topic-schema-dict` as an argument, but the allowed values depend on what you have configured.
 
 Assume you have a schema, saved two different ways, at the following filepaths:
 - `/home/my_schemas/cool_schema.py`, where it's just a python dict (named `my_cool_schema`)
@@ -483,7 +483,7 @@ The schema is:
 There is an optional producer config value `schema_library_root` (so `FLUVII_PRODUCER_SCHEMA_LIBRARY_ROOT`) that can
 be set to a folder path where your schemas are contained.
 
-If _not_ set, you can only produce messages by setting `topic_schema_dict` to the following:
+If _not_ set, you can only produce messages by setting `topic-schema-dict` to the following:
 
 - `'{"my_topic": "/home/my_schemas/schema.avro"}'`
 - `'{"my_topic": {"name": "CoolSchema", "type": "record", "fields": [{"name": "cool_field","type": "string"}]}'`

@@ -43,12 +43,12 @@ class ProducerFactory:
             except:
                 return None
         if self._metrics_manager_config.enable_metrics:
-            return self.metrics_cls(self._metrics_manager_config, auto_start=self._auto_start)
+            return self.metrics_cls(self._metrics_manager_config, auto_start=False)
         return None
 
     def _make_schema_registry(self):
         LOGGER.info("Generating the SchemaRegistry component...")
-        return self.registry_cls(self._schema_registry_config, auto_start=self._auto_start)
+        return self.registry_cls(self._schema_registry_config, auto_start=False)
 
     def _make_producer(self):
         LOGGER.info("Generating the Producer component...")

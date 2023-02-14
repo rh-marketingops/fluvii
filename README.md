@@ -156,7 +156,7 @@ different application instances (among other design reasons).
 
 Note: any configs that are manually handed here supercede any environment configurations.
 
-For more details, see the**Configuring _Fluvii_** section.
+For more details, see the **Configuring _Fluvii_** section.
 
 ## Setting up your app_function 
 The `app_function` you pass to Fluvii is the heart of your application. 
@@ -620,11 +620,11 @@ be pretty light.
 Here is some more specific information around how you should use the `Transaction` objects, which
 is the main application interface.
 
-### All Transaction objects
+### Transaction objects
 
 Assume we have a `Transaction` object, called "transaction".
 
-ALl `Transaction` objects will have the general workflow of:
+`Transaction` objects will have the general workflow of:
 
 1. `transaction.consume()`
 2. do stuff to the resulting consumed message, stored as `transaction.message` (or `.value()`)

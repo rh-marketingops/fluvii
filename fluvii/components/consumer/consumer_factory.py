@@ -8,8 +8,11 @@ LOGGER = logging.getLogger(__name__)
 
 class ConsumerFactory:
     consumer_cls = Consumer
+    consumer_config_cls = ConsumerConfig
     registry_cls = SchemaRegistry
+    registry_config_cls = SchemaRegistryConfig
     metrics_cls = MetricsManager
+    metrics_config_cls = MetricsManagerConfig
 
     def __new__(cls, *args, **kwargs):
         factory = object.__new__(cls)
@@ -22,9 +25,9 @@ class ConsumerFactory:
             auto_start=True, auto_subscribe=True
     ):
         if not consumer_config:
-            consumer_config = ConsumerConfig()
+            consumer_config = self.consumer_config_cls()
         if not schema_registry_config:
-            schema_registry_config = SchemaRegistryConfig()
+            schema_registry_config = self.registry_config_cls()
 
         self._group_name = group_name
         self._consume_topics_list = consume_topics_list.split(',') if isinstance(consume_topics_list, str) else consume_topics_list
@@ -43,7 +46,7 @@ class ConsumerFactory:
         LOGGER.info("Generating the MetricsManager component...")
         if not self._metrics_manager_config:
             try:
-                self._metrics_manager_config = MetricsManagerConfig()
+                self._metrics_manager_config = self.metrics_config_cls()
             except:
                 return None
         if self._metrics_manager_config.enable_metrics:

@@ -33,9 +33,9 @@ class FluviiApp:
             self._producer.reset()
             pass
 
-    def _init_transaction_handler(self, **kwargs):
+    def _init_transaction_handler(self, *args, **kwargs):
         LOGGER.debug('initing a transaction handler...')
-        self.transaction = self._transaction_cls(self._producer, self._consumer, fluvii_app_instance=self, auto_consume=False, **kwargs)
+        self.transaction = self._transaction_cls(*args, self._producer, self._consumer, fluvii_app_instance=self, auto_consume=False, **kwargs)
         return self.transaction
 
     def _handle_message(self, **kwargs):

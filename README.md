@@ -6,8 +6,8 @@ This will be the easiest way to get assistance from us should you need it =)
 
 # State of Fluvii as of v1.0.0
 
-We feel _Fluvii_ is now stable enough that you can reliably use it. Our team at Red Hat runs our production 
-systems on it. 
+We feel _Fluvii_ is now stable enough that you can reliably use it. Our team at Red Hat runs our production
+systems on it.
 
 Most of the major bugs have been stamped out, but like with anything, there are always hard-to-catch
 edge cases. We try to fix these issues as we find them, and they are becoming increasingly rare!
@@ -34,7 +34,7 @@ _Fluvii_ was originally written as a simpler alternative for the other popular P
 Much like Faust, _Fluvii_ offers _similar_ functionality to the Kafka-Streams java client;
 it's likely no surpise that "Fluvii" translates to "streams" in Latin!
 
-We like to think of _Fluvii_ as a simplified kafka-streams; it was designed to make Exactly Once Semantics (aka transactions) 
+We like to think of _Fluvii_ as a simplified kafka-streams; it was designed to make Exactly Once Semantics (aka transactions)
 and basic state storage (aka "tabling") require as little code as possible.
 
 **We also take full advantage of transactions by handling multiple consumed/produced messages at once per transaction,
@@ -47,7 +47,7 @@ See below for further elaborations on _Fluvii_'s use-cases.
 We designed _Fluvii_ after using Faust/Kafka extensively; we found that in most cases, we didn't
 need most of the functionality provided by Faust to accomplish 95% of our work. We imagine this will be true for you, too!
 
-As such, we wanted an interface that required minimal interaction/repetition, 
+As such, we wanted an interface that required minimal interaction/repetition,
 yet offered the ability to easily extend it (or manually handle anything) when needed.
 
 The main reason we wrote _Fluvii_ was to replace Faust, for a few reasons:
@@ -74,7 +74,7 @@ _Fluvii_ assumes/defaults to:
 - 1 schema per topic
 - If tabling, each app that is part of the same consumer group has a shared storage point (like a mounted drive in Kubernetes).
 
-_Fluvii_ also assumes/defaults to these, but these are likely to extend/grow: 
+_Fluvii_ also assumes/defaults to these, but these are likely to extend/grow:
 
 - Using Prometheus metrics (and a push-gateway for app metrics); **the metrics are turned off by default.**
 - Using Sqlite as your table database (which also changes the table storage point above)
@@ -87,7 +87,7 @@ _Fluvii_ also assumes/defaults to these, but these are likely to extend/grow:
 ## Understanding `*Factory` classes
 In general, you'll be using "Factory" classes, which will generate the objects you will interface with.
 
-They basically encapsulate the configuration step of their respective non-factory object; 
+They basically encapsulate the configuration step of their respective non-factory object;
 i.e. `FluviiAppFactory` helps generate a fully-configured `FluviiApp` instance.
 
 The main ones to focus on would be:
@@ -104,7 +104,7 @@ TL;DR `FluviiAppFactory` will likely be your one-stop shop, which makes a `Fluvi
 
 ## Understanding "Components"
 
-_Fluvii_ comprises several classes that work in tandem. Some classes are referred to as "components", 
+_Fluvii_ comprises several classes that work in tandem. Some classes are referred to as "components",
 which `FluviiApp`'s coordinate and orchestrate (and some work as stand-alones, like the `Producer`). These include
 - SchemaRegistry
 - MetricsManager/Pusher
@@ -158,10 +158,10 @@ Note: any configs that are manually handed here supercede any environment config
 
 For more details, see the **Configuring _Fluvii_** section.
 
-## Setting up your app_function 
-The `app_function` you pass to Fluvii is the heart of your application. 
+## Setting up your app_function
+The `app_function` you pass to Fluvii is the heart of your application.
 
-Typically, you consume a message and do "logic n' stuff", which could include producing new messages. This function encapsulates all of that. 
+Typically, you consume a message and do "logic n' stuff", which could include producing new messages. This function encapsulates all of that.
 
 Some notes:
 - By default, the function MUST take at minimum 1 argument, of which the first will be an injection of a `Transaction` object instance at runtime. For example,
@@ -184,7 +184,7 @@ These component configs (i.e. any `config.py`) typically have working defaults f
 of them will not need any additional tweaking.
 
 ## Configuration options
-1. Component config handed to a `*Factory` argument. 
+1. Component config handed to a `*Factory` argument.
    - An (incomplete) example of this might look like:
        ```python
        app = FluviiAppFactory(consumer_config=ConsumerConfig(timeout_minutes=10))
@@ -192,9 +192,9 @@ of them will not need any additional tweaking.
 2. With environment variables
     - In general, this is the reccommended approach.
     - You can look at each config object, with defines a prefix. For any given config value, just prepend the prefix to said value.
-    - For example, with `ConsumerConfig`: 
-      - its prefix is `FLUVII_CONSUMER_`. 
-      - It has a setting called `timeout_minutes`. 
+    - For example, with `ConsumerConfig`:
+      - its prefix is `FLUVII_CONSUMER_`.
+      - It has a setting called `timeout_minutes`.
       - Then the respective environment variable for this setting is `FLUVII_CONSUMER_TIMEOUT_MINUTES`
 
 3. With a `.env` file, where the environment variable `FLUVII_CONFIG_DOTENV` is the filepath to it
@@ -207,10 +207,10 @@ of them will not need any additional tweaking.
 
 ## Configuration precedence
 
-Under the hood, Fluvii uses `Pydantic`, and as such, follows its rules for configuration precedence for each config value. 
+Under the hood, Fluvii uses `Pydantic`, and as such, follows its rules for configuration precedence for each config value.
 
-Do note that the configs only populate with actual defined values at each step, so non-defined values won't overwrite 
-previously defined ones unless you specifically define them to be empty. 
+Do note that the configs only populate with actual defined values at each step, so non-defined values won't overwrite
+previously defined ones unless you specifically define them to be empty.
 
 Here's the order from highest precedence to lowest (higher supercedes anything below it):
 
@@ -236,8 +236,8 @@ FLUVII_APP_NAME=
 
 ### ONLY IF AUTHENTICATING, else ignore...see auth config for OAUTH
 # Kafka Consumer/Producer
-FLUVII_KAFKA_AUTH_USERNAME=
-FLUVII_KAFKA_AUTH_PASSWORD=
+FLUVII_AUTH_KAFKA_USERNAME=
+FLUVII_AUTH_KAFKA_PASSWORD=
 # Schema Registry
 FLUVII_SCHEMA_REGISTRY_USERNAME=
 FLUVII_SCHEMA_REGISTRY_PASSWORD=
@@ -386,7 +386,7 @@ fluvii_table_app().run()
 
 ## Configuring a FluviiApp more explicitly (no environment set):
 
-Here, we set up a FluviiApp with required values only, and where authentication is required. 
+Here, we set up a FluviiApp with required values only, and where authentication is required.
 
 The environment has no additional configuration (aka no values set).
 
@@ -394,7 +394,7 @@ We also change the `consumer_timeout` from the default to 10 minutes.
 ```python
 
 from fluvii import (
-    FluviiAppFactory, 
+    FluviiAppFactory,
     FluviiAppConfig,
     ProducerConfig,
     ConsumerConfig,
@@ -410,7 +410,7 @@ def my_business_logic(transaction):
 
 def my_fluvii_app():
     auth_kafka_kws = {
-        'urls': 'my.broker.url0,my.broker.url1', 
+        'urls': 'my.broker.url0,my.broker.url1',
         'auth_kafka_config': AuthKafkaConfig(username='my_kafka_un', password='my_kafka_pw')
     }
     return FluviiAppFactory(
@@ -435,7 +435,7 @@ Note that if we had set any of those values up via the environment, they would h
 
 Want some help managing topics, or need an easy way to produce or consume on the fly? `FluviiToolbox` has you covered!
 
-`FluviiToolbox` has multiple features, including 
+`FluviiToolbox` has multiple features, including
 - listing all topics on the broker, including the configs for them
 - producing a set of messages from a dict
 - consuming all messages from a topic, including starting from a specific offset
@@ -448,9 +448,9 @@ Want some help managing topics, or need an easy way to produce or consume on the
 # CLI
 
 Right now, the CLI is fairly basic, but does allow you to perform similar actions to the `FluviiToolbox` (in fact,
-it's basically an API for the CLI.) 
+it's basically an API for the CLI.)
 
-As such, you can do all the same things the `FluviiToolbox` can do! 
+As such, you can do all the same things the `FluviiToolbox` can do!
 
 ### Configuring the CLI
 
@@ -488,7 +488,7 @@ If _not_ set, you can only produce messages by setting `topic-schema-dict` to th
 - `'{"my_topic": "/home/my_schemas/schema.avro"}'`
 - `'{"my_topic": {"name": "CoolSchema", "type": "record", "fields": [{"name": "cool_field","type": "string"}]}'`
 
-However, assume you have set `FLUVII_PRODUCER_SCHEMA_LIBRARY_ROOT=/home/my_schemas`. This additionally enables you 
+However, assume you have set `FLUVII_PRODUCER_SCHEMA_LIBRARY_ROOT=/home/my_schemas`. This additionally enables you
 to both import it as a python object using the full pythonpath the object from that directory, and use relative filepaths:
 
 - `'{"my_topic": "cool_schema.avro"}'`
@@ -514,7 +514,7 @@ Anyway, let's say you wish to produce the following 2 messages in `/home/msgs/in
   }
 ]
 ```
-then the full command is: 
+then the full command is:
 
 `fluvii topics produce --topic-schema-dict '{"my_topic": "cool_schema.avro"}' --input-filepath /home/msgs/inputs.json`
 
@@ -528,16 +528,16 @@ If you don't want to produce the given topic in the message body, you can also o
 Consuming is relatively simple, but it does have some additional flexibility should you need it.
 
 Basically, there is an argument named `topic-offset-dict`, which takes a dict of offsets should you need to specify a
-starting point for any given partition. Otherwise, it defaults to `earliest`. 
+starting point for any given partition. Otherwise, it defaults to `earliest`.
 
-Here is an example where we consume two topics, and we want to start from offset 100 for partition 1 and 2 for "topic_2", 
+Here is an example where we consume two topics, and we want to start from offset 100 for partition 1 and 2 for "topic_2",
 otherwise we want everything else.
 
 `fluvii topics consume --topic-offset-dict '{"topic_1": {}, "topic_2": {"1": 100, "2": 100}' --output-filepath /home/msgs/data_out.json`
 
 ### Creating topics
 
-When creating topics, it is recommended to set, at minimum, your `partitions` and `replication.factor`. 
+When creating topics, it is recommended to set, at minimum, your `partitions` and `replication.factor`.
 
 You can look up all potential settings via [kafka's documentation](https://kafka.apache.org/documentation/#topicconfigs).
 

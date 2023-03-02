@@ -18,8 +18,8 @@ class FluviiTableApp(FluviiApp):
 
     # -------------------------  Protected Method Overrides ------------------------
 
-    def _init_transaction_handler(self, **kwargs):
-        super()._init_transaction_handler(fluvii_changelog_topic=self.changelog_topic, fluvii_tables=self.tables, **kwargs)
+    def _init_transaction_handler(self, *args, **kwargs):
+        super()._init_transaction_handler(self.changelog_topic, self.tables, *args, **kwargs)
 
     def _finalize_app_batch(self):
         super()._finalize_app_batch()

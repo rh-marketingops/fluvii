@@ -41,8 +41,9 @@ class MetricsManager:
 
     Creates and manages Metric instances and pushes their metrics
     """
+    pusher_config_cls = MetricsPusherConfig
 
-    def __init__(self, config=None, pusher=None, auto_start=True):
+    def __init__(self, config, pusher=None, auto_start=True):
         """
         Initializes monitor and Metric classes
         """
@@ -50,6 +51,7 @@ class MetricsManager:
         self.registry = CollectorRegistry()
         self._metrics = {}
         self.pusher = self._generate_pusher(pusher)
+        self._started = False
 
         self.new_metric('messages_consumed', description='Messages consumed since application start', additional_labels=['topic']),
         self.new_metric('messages_produced', description='Messages produced since application start', additional_labels=['topic']),
@@ -69,9 +71,9 @@ class MetricsManager:
     def _generate_pusher(self, pusher):
         if not pusher and self._config.enable_pushing:
             try:
-                cfg = MetricsPusherConfig()
+                cfg = self.pusher_config_cls()
             except ValidationError:
-                cfg = MetricsPusherConfig(hostname=self._config.hostname, app_name=self._config.app_name)
+                cfg = self.pusher_config_cls(hostname=self._config.hostname, app_name=self._config.app_name)
             return MetricsPusher(self.registry, config=cfg)
         return pusher
 
@@ -92,3 +94,4 @@ class MetricsManager:
         if not self._started:
             if self.pusher and self._config.enable_pushing:
                 self.pusher.start()
+            self._started = True

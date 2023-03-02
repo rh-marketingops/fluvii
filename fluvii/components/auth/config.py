@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 from fluvii.config_bases import KafkaConfigBase, FluviiConfigBase
-from pydantic import SecretStr
+from pydantic import SecretStr, validator
 import requests
 import time
 
@@ -15,6 +15,12 @@ class AuthKafkaConfig(KafkaConfigBase, FluviiConfigBase):
 
     class Config(FluviiConfigBase.Config):
         env_prefix = "FLUVII_AUTH_KAFKA_"
+
+    @validator('mechanisms')
+    def set_hostname(cls, value, values):
+        if values["oauth_url"]:
+            return 'OAUTHBEARER'
+        return 'PLAIN'
 
     def _get_oauth_token(self, required_arg):
         """required_arg is...well, required. Was easier to set it up without using it (basically

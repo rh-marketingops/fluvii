@@ -49,11 +49,9 @@ class TopicDumperApp(FluviiMultiMessageApp):
                     offset = watermarks[0]
                 LOGGER.debug(f'Seeking {topic} p{p} to offset {offset}')
                 self._consumer.seek(TopicPartition(topic=topic, partition=p, offset=offset))
-        # ensure the accidently consumed message is also reversed (due to the poll required)
-        if self._consumer.message:
-            t = self._consumer.message.topic()
-            if p := self._consumer.message.partition() not in self._consume_topics_dict[t]:
-                self._consumer.seek(TopicPartition(topic=t, partition=p, offset=self._consumer.message.offset()))
+        # drop the residual consumed message (.poll required for seeking) if that msg's partition had a specified offset
+        if self._consumer.message and self._consumer.message.partition() in self._consume_topics_dict[self._consumer.message.topic()]:
+            self._consumer._messages = []
 
     def _finalize_app_batch(self):
         if self._app_function:

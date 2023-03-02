@@ -8,4 +8,4 @@ class MetricsManagerConfig(FluviiConfigBase):
     enable_pushing: bool = False
 
     class Config(FluviiConfigBase.Config):
-        env_prefix = "FLUVII_METRICS_MANAGER"
+        env_prefix = "FLUVII_METRICS_MANAGER_"

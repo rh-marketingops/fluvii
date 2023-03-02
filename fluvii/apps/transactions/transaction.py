@@ -110,13 +110,11 @@ class Transaction:
 
 
 class TableTransaction(Transaction):
-    def __init__(self, producer, consumer, fluvii_changelog_topic, fluvii_tables, auto_consume=True, message=None, fluvii_app_instance=None, refresh_after_commit=False):
+    def __init__(self, fluvii_changelog_topic, fluvii_tables, *args, **kwargs):
         # set first since we override _init_attrs
         self.app_changelog_topic = fluvii_changelog_topic
         self.tables = fluvii_tables
-
-        super().__init__(producer, consumer, message=message, auto_consume=auto_consume,
-                         fluvii_app_instance=fluvii_app_instance, refresh_after_commit=refresh_after_commit)
+        super().__init__(*args, **kwargs)
 
     # -------------------------  Protected Method Overrides ------------------------
     def _init_attrs(self):

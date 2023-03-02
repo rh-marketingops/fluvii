@@ -8,8 +8,11 @@ LOGGER = logging.getLogger(__name__)
 
 class ProducerFactory:
     producer_cls = Producer
+    producer_config_cls = ProducerConfig
     registry_cls = SchemaRegistry
+    registry_config_cls = SchemaRegistryConfig
     metrics_cls = MetricsManager
+    metrics_config_cls = MetricsManagerConfig
 
     def __new__(cls, *args, **kwargs):
         factory = object.__new__(cls)
@@ -22,9 +25,9 @@ class ProducerFactory:
             auto_start=True
     ):
         if not producer_config:
-            producer_config = ProducerConfig()
+            producer_config = self.producer_config_cls()
         if not schema_registry_config:
-            schema_registry_config = SchemaRegistryConfig()
+            schema_registry_config = self.registry_config_cls()
 
         self._topic_schema_dict = topic_schema_dict if isinstance(topic_schema_dict, dict) else {}
         self._auto_start = auto_start
@@ -39,7 +42,7 @@ class ProducerFactory:
         LOGGER.info("Generating the MetricsManager component...")
         if not self._metrics_manager_config:
             try:
-                self._metrics_manager_config = MetricsManagerConfig()
+                self._metrics_manager_config = self.metrics_config_cls()
             except:
                 return None
         if self._metrics_manager_config.enable_metrics:

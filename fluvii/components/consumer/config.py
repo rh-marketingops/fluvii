@@ -23,7 +23,7 @@ class ConsumerConfig(KafkaConfigBase, FluviiConfigBase):
 
     # fluvii settings
     poll_timeout_seconds: int = 5
-    batch_consume_max_count: int = 100
+    batch_consume_max_count: Optional[int] = 100
     batch_consume_max_empty_polls: Optional[int] = 2
     batch_consume_max_time_seconds: Optional[int] = 10
     batch_consume_trigger_message_age_seconds: int = 5

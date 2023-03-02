@@ -14,10 +14,15 @@ LOGGER = logging.getLogger(__name__)
 
 class AppFactory:
     fluvii_app_cls = None
+    fluvii_app_config_cls = FluviiAppConfig
     producer_cls = TransactionalProducer
+    producer_config_cls = ProducerConfig
     consumer_cls = TransactionalConsumer
-    metrics_cls = MetricsManager
+    consumer_config_cls = ConsumerConfig
     registry_cls = SchemaRegistry
+    registry_config_cls = SchemaRegistryConfig
+    metrics_cls = MetricsManager
+    metrics_config_cls = MetricsManagerConfig
 
     def __new__(cls, *args, **kwargs):
         factory = object.__new__(cls)
@@ -29,13 +34,13 @@ class AppFactory:
             fluvii_config=None, schema_registry_config=None,
             producer_config=None, consumer_config=None, metrics_manager_config=None):
         if not fluvii_config:
-            fluvii_config = FluviiAppConfig()
+            fluvii_config = self.fluvii_app_config_cls()
         if not schema_registry_config:
-            schema_registry_config = SchemaRegistryConfig()
+            schema_registry_config = self.registry_config_cls()
         if not producer_config:
-            producer_config = ProducerConfig()
+            producer_config = self.producer_config_cls()
         if not consumer_config:
-            consumer_config = ConsumerConfig()
+            consumer_config = self.consumer_config_cls()
 
         self._app_function = app_function
         self._fluvii_config = fluvii_config
@@ -87,7 +92,9 @@ class AppFactory:
 
     def _return_class(self):
         LOGGER.info(f'initializing app class {self.fluvii_app_cls}')
+        producer = self._make_producer()
+        consumer = self._make_consumer()
         return self.fluvii_app_cls(
-            self._app_function, self._consume_topics_list, self._fluvii_config, self._make_producer(), self._make_consumer(), self._schema_registry,
+            self._app_function, self._consume_topics_list, self._fluvii_config, producer, consumer, self._schema_registry,
             app_function_arglist=self._app_function_arglist, metrics_manager=self._metrics_manager, produce_topic_schema_dict=self._produce_topic_schema_dict
         )

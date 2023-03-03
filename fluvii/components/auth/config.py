@@ -6,8 +6,8 @@ import time
 
 
 class AuthKafkaConfig(KafkaConfigBase, FluviiConfigBase):
-    username: str
-    password: SecretStr
+    username: Optional[str] = None
+    password: Optional[SecretStr] = None
     oauth_url: Optional[str] = None
     oauth_scope: Optional[str] = None
     mechanisms: Literal['PLAIN', 'OAUTHBEARER'] = 'OAUTHBEARER' if oauth_url else 'PLAIN'

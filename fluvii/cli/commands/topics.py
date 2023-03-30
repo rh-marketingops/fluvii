@@ -21,6 +21,10 @@ def list_topics(include_configs):
 @click.option("--topic-list", type=str, required=False)
 @click.option("--config-dict", type=str, required=False)
 def create_topics(topic_config_dict, topic_list, config_dict):
+    if not click.get_text_stream('stdin').isatty():  # means something is getting piped in
+            text_stream = click.get_text_stream('stdin')
+            topic_config_dict = text_stream.read()
+            text_stream.flush()
     if topic_config_dict:
         topic_config_dict = json.loads(topic_config_dict)
     else:
@@ -35,8 +39,20 @@ def create_topics(topic_config_dict, topic_list, config_dict):
             click.echo('There were no configs defined; using defaults of {partitions=3, replication.factor=3}')
             config_dict = {'partitions': 3, 'replication.factor': 3}
         topic_config_dict = {topic: config_dict for topic in topic_list}
-    click.echo(f'Creating topics {list(topic_config_dict.keys())}')
+    click.echo(f'Attempting to create topics {list(topic_config_dict.keys())}')
     FluviiToolbox().create_topics(topic_config_dict)
+
+
+@topics_group.command(name="alter")
+@click.option("--topic-config-dict", type=str, required=False)
+def alter_topics(topic_config_dict):
+    if not click.get_text_stream('stdin').isatty():  # means something is getting piped in
+        text_stream = click.get_text_stream('stdin')
+        topic_config_dict = text_stream.read()
+        text_stream.flush()
+    topic_config_dict = json.loads(topic_config_dict)
+    click.echo(f'Attempting to alter topic configs for {list(topic_config_dict.keys())}')
+    FluviiToolbox().alter_topics(topic_config_dict)
 
 
 @topics_group.command(name="delete")
@@ -52,6 +68,16 @@ def delete_topics(topic_config_dict, topic_list):
         topic_list = list(json.loads(topic_config_dict).keys())
     click.echo(f'Deleting topics {topic_list}')
     FluviiToolbox().delete_topics(topic_list)
+
+
+@topics_group.command(name="sync")
+@click.option("--topic-config-dict", type=str, required=False)
+def sync_topics(topic_config_dict):
+    if not click.get_text_stream('stdin').isatty():  # means something is getting piped in
+        text_stream = click.get_text_stream('stdin')
+        topic_config_dict = text_stream.read()
+        text_stream.flush()
+    FluviiToolbox().sync_topics(json.loads(topic_config_dict))
 
 
 @topics_group.command(name="consume")

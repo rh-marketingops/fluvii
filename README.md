@@ -382,9 +382,9 @@ from fluvii import FluviiTableAppFactory
 #     "name": "AccountPurchase",
 #     "type": "record",
 #     "fields": [
-#         {"name": "Account Number", "type": "string"},
-#         {"name": "Purchase Timestamp", "type": "string"},
-#         {"name": "Purchase Amount", "type": "string"},
+#         {"name": "Account Number", "type": "string", "default": ""},
+#         {"name": "Purchase Timestamp", "type": "string", "default": ""},
+#         {"name": "Purchase Amount", "type": "string", "default": ""},
 #     ]
 # }
 
@@ -392,8 +392,8 @@ account_balance_schema = {
     "name": "AccountBalance",
     "type": "record",
     "fields": [
-        {"name": "Account Number", "type": "string"},
-        {"name": "Account Balance", "type": "string"},
+        {"name": "Account Number", "type": "string", "default": ""},
+        {"name": "Account Balance", "type": "string", "default": ""},
     ]
 }
 

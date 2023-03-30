@@ -437,7 +437,18 @@ from fluvii import (
     SchemaRegistryConfig
 )
 
-my_schema = 'your schema here'
+a_cool_schema = {
+    "name": "CoolSchema",
+    "type": "record",
+    "fields": [
+        {
+            "name": "cool_field",
+            "type": "string",
+            "default": "",
+        }
+    ]
+}
+
 
 def my_business_logic(transaction):
     pass # do stuff to messages
@@ -446,14 +457,14 @@ def my_business_logic(transaction):
 def my_fluvii_app():
     auth_kafka_kws = {
         'urls': 'my.broker.url0,my.broker.url1',
-        'auth_kafka_config': AuthKafkaConfig(username='my_kafka_un', password='my_kafka_pw')
+        'auth_config': AuthKafkaConfig(username='my_kafka_un', password='my_kafka_pw')
     }
     return FluviiAppFactory(
         my_business_logic,
-        ['my_input_topic'],
-        produce_topic_schema_dict={'my_output_topic': my_schema},
-        fluvii_config=FluviiAppConfig(app_name='my_fluvii_app'),
-        schema_registry_config=SchemaRegistryConfig(url='my.sr.url', username='my_sr_un', password='my_sr_pw'),
+        ['my_input_topic_name'],
+        produce_topic_schema_dict={'my_output_topic_name': a_cool_schema},
+        fluvii_config=FluviiAppConfig(name='my_fluvii_app'),
+        schema_registry_config=SchemaRegistryConfig(url='https://my.sr.url', username='my_sr_un', password='my_sr_pw'),
         consumer_config=ConsumerConfig(**auth_kafka_kws, timeout_minutes=10),
         producer_config=ProducerConfig(**auth_kafka_kws),
     )

@@ -252,7 +252,41 @@ There is also a `FLUVII_APP_HOSTNAME` which we suggest setting to your kubernete
 
 # Simple FluviiApp Examples
 
-## Initializing/running a bare-bones `FluviiApp`:
+Note: all these examples assume the kafka topics already exist.
+
+## Initializing/running a bare-bones `FluviiProducer` (required environment variables already set):
+
+Here's a simple looping producer app.
+
+Feel free to combine this with the next example to easily explore the functionality of Fluvii!
+
+```python
+from fluvii.components.producer import ProducerFactory
+from time import sleep
+
+a_cool_schema = {
+    "name": "CoolSchema",
+    "type": "record",
+    "fields": [
+        {
+            "name": "cool_field",
+            "type": "string",
+            "default": ""
+        }
+    ]
+}
+
+producer = ProducerFactory(topic_schema_dict={"test_topic_a": a_cool_schema})
+
+try:
+    while True:
+        producer.produce({"cool_field": "test_value"}, key="my_key", topic="test_topic_a")
+        sleep(5)
+finally:
+    producer.close()
+```
+
+## Initializing/running a bare-bones `FluviiApp` (required environment variables already set):
 
 Note: This example assumes you have set the few required config settings via environment variables.
 You can find a manual configuration example further below.
@@ -284,7 +318,8 @@ a_cool_schema = {
     "fields": [
         {
             "name": "cool_field",
-            "type": "string"
+            "type": "string",
+            "default": "",
         }
     ]
 }

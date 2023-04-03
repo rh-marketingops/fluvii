@@ -57,9 +57,14 @@ _Fluvii_ also assumes/defaults to these, but these are likely to extend/grow:
 
 # Getting started with _Fluvii_
 
+Here, we will give you a brief overview of all the major pieces you should be aware of when writing
+an application with _Fluvii_. It will make your exploration much smoother!
+
+We recommend copying the example `FluviiApp` we have further down in the README and follow along with that, as
+most of this will make a lot of sense when viewed alongside it.
 
 ## Understanding `*Factory` classes
-In general, you'll start by using a "Factory" class, which will generate the final object you will interface with.
+In general, you'll start with a "Factory" class, which will generate the final object that starts your application!
 
 These basically encapsulate the configuration step of their respective object;
 i.e. `FluviiAppFactory` helps generate a fully-configured `FluviiApp` instance.
@@ -143,6 +148,8 @@ By default, your function MUST take at minimum 1 argument, of which the first wi
    def my_app_function(transaction, my_arg, my_arg2):
       pass # do stuff; using the transaction object throughout
    ```
+
+This is the function that runs in a loop forever once you call `FluviiApp.run()`.
 
 # Configuring _Fluvii_
 
@@ -295,7 +302,7 @@ fluvii_app = FluviiAppFactory(
     ['test_topic_a', 'test_topic_b'],
     produce_topic_schema_dict={'cool_topic_out': a_cool_schema},
     app_function_arglist = [heavy_thing_inited_at_runtime])  # optional! Here to show functionality.
-fluvii_app.run()
+fluvii_app.run()  # once you call .run(), 'my_app_logic' runs until you explicitly kill the app!
 ```
 
 ## Using a table with a `FluviiTableApp`

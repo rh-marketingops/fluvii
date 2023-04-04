@@ -5,6 +5,14 @@ from fluvii.general_utils import parse_headers
 import json
 
 
+def read_from_stdin():
+    if not click.get_text_stream('stdin').isatty():  # means something is getting piped in
+        text_stream = click.get_text_stream('stdin')
+        std_in = text_stream.read()
+        text_stream.flush()
+        return std_in
+
+
 @fluvii_cli.group("topics")
 def topics_group():
     pass
@@ -21,10 +29,8 @@ def list_topics(include_configs):
 @click.option("--topic-list", type=str, required=False)
 @click.option("--config-dict", type=str, required=False)
 def create_topics(topic_config_dict, topic_list, config_dict):
-    if not click.get_text_stream('stdin').isatty():  # means something is getting piped in
-            text_stream = click.get_text_stream('stdin')
-            topic_config_dict = text_stream.read()
-            text_stream.flush()
+    if std_in := read_from_stdin():
+        topic_config_dict = std_in
     if topic_config_dict:
         topic_config_dict = json.loads(topic_config_dict)
     else:
@@ -46,10 +52,8 @@ def create_topics(topic_config_dict, topic_list, config_dict):
 @topics_group.command(name="alter")
 @click.option("--topic-config-dict", type=str, required=False)
 def alter_topics(topic_config_dict):
-    if not click.get_text_stream('stdin').isatty():  # means something is getting piped in
-        text_stream = click.get_text_stream('stdin')
-        topic_config_dict = text_stream.read()
-        text_stream.flush()
+    if std_in := read_from_stdin():
+        topic_config_dict = std_in
     topic_config_dict = json.loads(topic_config_dict)
     click.echo(f'Attempting to alter topic configs for {list(topic_config_dict.keys())}')
     FluviiToolbox().alter_topics(topic_config_dict)
@@ -73,10 +77,8 @@ def delete_topics(topic_config_dict, topic_list):
 @topics_group.command(name="sync")
 @click.option("--topic-config-dict", type=str, required=False)
 def sync_topics(topic_config_dict):
-    if not click.get_text_stream('stdin').isatty():  # means something is getting piped in
-        text_stream = click.get_text_stream('stdin')
-        topic_config_dict = text_stream.read()
-        text_stream.flush()
+    if std_in := read_from_stdin():
+        topic_config_dict = std_in
     FluviiToolbox().sync_topics(json.loads(topic_config_dict))
 
 

@@ -44,10 +44,7 @@ class SchemaRegistry:
         if scheme:
             url = url._replace(path=url.netloc, netloc='')
         else:
-            if auth:
-                scheme = 'https'
-            else:
-                scheme = 'http'
+            scheme = 'https' if auth else 'http'
         url = url._replace(scheme='')
         self.registry = SchemaRegistryClient({'url': f'{scheme}://{auth}{url.geturl()}'})
         LOGGER.info('Registry client initialized successfully!')

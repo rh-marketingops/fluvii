@@ -42,7 +42,7 @@ class SchemaRegistry:
             auth = f"{quote(self._config.username)}:{quote(self._config.password.get_secret_value())}@"
         scheme = url.scheme
         if scheme:
-            url = url._replace(path=url.netloc, netloc='')
+            url = url._replace(path=f'{url.netloc}{url.path}', netloc='')
         else:
             scheme = 'https' if auth else 'http'
         url = url._replace(scheme='')

@@ -58,7 +58,7 @@ class AppFactory:
     def _make_metrics_manager(self):
         LOGGER.info("Generating the MetricsManager component...")
         if not self._metrics_manager_config:
-            self._metrics_manager_config = MetricsManagerConfig(app_name=self._fluvii_config.name, hostname=self._fluvii_config.hostname)
+            self._metrics_manager_config = self.metrics_config_cls(app_name=self._fluvii_config.name, hostname=self._fluvii_config.hostname)
         if self._metrics_manager_config.enable_metrics:
             return self.metrics_cls(self._metrics_manager_config, auto_start=False)
         return None

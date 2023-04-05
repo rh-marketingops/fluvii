@@ -93,7 +93,7 @@ class FluviiToolbox(ProducerFactory, ConsumerFactory):
                 futures[topic].result()
         LOGGER.info(f'Created topics: {list(topic_config_dict.keys())}')
 
-    def alter_topics(self, topic_config_dict, retain_configs=True, ignore_missing_topics=True, ignore_field_list=None):
+    def alter_topics(self, topic_config_dict, retain_configs=True, ignore_missing_topics=True, ignorable_fields=None):
         """
         {'topic_a': {'segment.ms': 10000}, 'topic_b': {etc}}
         NOTE: you cannot change partitions or replication factor this way
@@ -101,10 +101,10 @@ class FluviiToolbox(ProducerFactory, ConsumerFactory):
         TODO: make a preview option
         """
         self._set_admin()
-        if not ignore_field_list:
-            ignore_field_list = []
-        ignore_field_list += ['partitions', 'replication_factor', 'replication.factor']
-        ignore_field_list = set(ignore_field_list)
+        if not ignorable_fields:
+            ignorable_fields = []
+        ignorable_fields += ['partitions', 'replication_factor', 'replication.factor']
+        ignorable_fields = set(ignorable_fields)
 
         current_configs = {}
         if retain_configs:
@@ -121,11 +121,11 @@ class FluviiToolbox(ProducerFactory, ConsumerFactory):
                 for i in missing:
                     topic_config_dict.pop(i)
             if not topic_config_dict:
-                LOGGER.info('No valid topics.')
+                LOGGER.info('No topics to alter.')
                 return
 
-        config_updates = {t: {cfg: val for cfg, val in cfgs.items() if cfg not in ignore_field_list} for t, cfgs in current_configs.items()}
-        topic_config_dict = {t: {cfg: val for cfg, val in cfgs.items() if cfg not in ignore_field_list and str(config_updates[t][cfg]) != str(val)} for t, cfgs in topic_config_dict.items()}
+        config_updates = {t: {cfg: val for cfg, val in cfgs.items() if cfg not in ignorable_fields} for t, cfgs in current_configs.items()}
+        topic_config_dict = {t: {cfg: val for cfg, val in cfgs.items() if cfg not in ignorable_fields and str(config_updates[t][cfg]) != str(val)} for t, cfgs in topic_config_dict.items()}
         topic_config_dict = {t: cfgs for t, cfgs in topic_config_dict.items() if cfgs}
         if not topic_config_dict:
             LOGGER.info('No novel alters to be made')
@@ -148,11 +148,11 @@ class FluviiToolbox(ProducerFactory, ConsumerFactory):
                 uneditable = [field.split('=')[0].strip() for field in bad_fields if 'This config cannot be updated.' in field]
                 if unhandled_errors and not uneditable:
                     raise ValueError(unhandled_errors)
-                ignore_field_list = list(ignore_field_list) + uneditable
+                ignorable_fields = list(ignorable_fields) + uneditable
                 LOGGER.info(f'Restricted configs were discovered (which may be from ensuring all previous set configs remain): {uneditable}. '
                             f'Retrying with them added to the ignore field list. If you do not see a field you directly provided here, all should be well!')
                 LOGGER.info(f'Topics altered successfully so far: {altered}')
-                return self.alter_topics(topic_config_dict, retain_configs=retain_configs, ignore_missing_topics=ignore_missing_topics, ignore_field_list=ignore_field_list)
+                return self.alter_topics(topic_config_dict, retain_configs=retain_configs, ignore_missing_topics=ignore_missing_topics, ignorable_fields=ignorable_fields)
             else:
                 raise
         LOGGER.info(f'Topics altered successfully: {altered}')

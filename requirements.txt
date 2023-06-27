@@ -1,0 +1,10 @@
+click==8.1.3
+confluent_kafka==1.9.2
+mmh3==4.0.0
+prometheus_client==0.17.0
+pydantic==1.10.9
+pytest==7.4.0
+Requests==2.31.0
+setuptools==67.8.0
+sqlitedict==2.1.0
+aws-glue-schema-registry==1.1.2

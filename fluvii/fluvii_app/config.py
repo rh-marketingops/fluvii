@@ -1,6 +1,6 @@
 from fluvii.producer import ProducerConfig
 from fluvii.consumer import ConsumerConfig
-from fluvii.auth import SaslPlainClientConfig, SaslOauthClientConfig
+from fluvii.auth import SaslPlainClientConfig, AWSRegistryConfig, SaslOauthClientConfig
 from fluvii.metrics import MetricsManagerConfig, MetricsPusherConfig
 from os import environ
 from datetime import datetime
@@ -18,7 +18,8 @@ class FluviiConfig:
     and raise on exception for variables that are required.
     """
     def __init__(self,
-                 client_urls=None, schema_registry_url=None, client_auth_config=None, schema_registry_auth_config=None,
+                 client_urls=None,
+                 client_auth_config=None, schema_registry_auth_config=None,
                  producer_config=None, consumer_config=None, metrics_manager_config=None, metrics_pusher_config=None):
         self._time = int(datetime.timestamp(datetime.now()))
 
@@ -29,10 +30,7 @@ class FluviiConfig:
         # Required vars
         if not client_urls:
             client_urls = environ['FLUVII_KAFKA_BOOTSTRAP_SERVERS']
-        if not schema_registry_url:
-            schema_registry_url = environ['FLUVII_SCHEMA_REGISTRY_URL']
         self.client_urls = client_urls
-        self.schema_registry_url = schema_registry_url
 
         # Set only if env var or object is specified
         if not client_auth_config:
@@ -45,15 +43,19 @@ class FluviiConfig:
                         environ["FLUVII_OAUTH_URL"],
                         environ["FLUVII_OAUTH_SCOPE"])
                 else:
-                    LOGGER.info('Kafka clients will be initialized with plain authentication')
+                    LOGGER.info('Kafka clients will be initialized with SCRAM 512 authentication')
                     client_auth_config = SaslPlainClientConfig(
                         environ["FLUVII_CLIENT_USERNAME"],
-                        environ["FLUVII_CLIENT_PASSWORD"])
+                        environ["FLUVII_CLIENT_PASSWORD"],
+                        environ["FLUVII_CLIENT_MECHANISMS"]
+                    )
         if not schema_registry_auth_config:
-            if environ.get("FLUVII_SCHEMA_REGISTRY_USERNAME"):
-                schema_registry_auth_config = SaslPlainClientConfig(
-                    environ["FLUVII_SCHEMA_REGISTRY_USERNAME"],
-                    environ["FLUVII_SCHEMA_REGISTRY_PASSWORD"])
+            schema_registry_auth_config = AWSRegistryConfig(
+                environ["FLUVII_SCHEMA_REGISTRY_ACCESS_KEY_ID"],
+                environ["FLUVII_SCHEMA_REGISTRY_SECRET_ACCESS_KEY"],
+                environ["FLUVII_SCHEMA_REGISTRY_REGION_NAME"],
+                environ["FLUVII_SCHEMA_REGISTRY_REGISTRY_NAME"]
+            )
         self.client_auth_config = client_auth_config
         self.schema_registry_auth_config = schema_registry_auth_config
 

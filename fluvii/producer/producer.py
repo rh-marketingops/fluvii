@@ -3,6 +3,7 @@ import os
 from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.avro import load as avro_load
+
 from fluvii.general_utils import parse_headers
 from fluvii.exceptions import ProducerTimeoutFailure
 from .config import ProducerConfig
@@ -18,7 +19,13 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Producer:
-    def __init__(self, urls, schema_registry=None, topic_schema_dict=None, metrics_manager=None, client_auth_config=None, settings_config=ProducerConfig()):
+    def __init__(self,
+                 urls,
+                 schema_registry=None,
+                 topic_schema_dict=None,
+                 metrics_manager=None,
+                 client_auth_config=None,
+                 settings_config=ProducerConfig()):
         self._urls = ','.join(urls) if isinstance(urls, list) else urls
         self._auth = client_auth_config
         self._settings = settings_config

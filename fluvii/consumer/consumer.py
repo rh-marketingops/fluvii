@@ -1,6 +1,5 @@
 from confluent_kafka import DeserializingConsumer, TopicPartition
-from confluent_kafka.schema_registry.avro import AvroDeserializer
-
+from fluvii.avro.avro import FluviiAvroDeSerializer
 from fluvii.exceptions import NoMessageError, ConsumeMessageError, FinishedTransactionBatch, TransactionNotRequired
 from fluvii.general_utils import parse_headers, get_guid_from_message
 from copy import deepcopy
@@ -66,8 +65,8 @@ class Consumer:
             "partition.assignment.strategy": 'cooperative-sticky',
 
             # Registry Serialization Settings
-            "key.deserializer": AvroDeserializer(self._schema_registry, schema_str='{"type": "string"}'),
-            "value.deserializer": AvroDeserializer(self._schema_registry) if self._schema_registry else None,
+            "key.deserializer": FluviiAvroDeSerializer(self._schema_registry, schema_str='{"type": "string"}'),
+            "value.deserializer": FluviiAvroDeSerializer(self._schema_registry) if self._schema_registry else None,
         }
 
         if self._settings:

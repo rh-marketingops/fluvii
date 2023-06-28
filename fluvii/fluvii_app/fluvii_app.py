@@ -4,6 +4,7 @@ from fluvii.consumer import TransactionalConsumer
 from fluvii.producer import TransactionalProducer
 from fluvii.transaction import Transaction
 from fluvii.schema_registry import SchemaRegistry
+from fluvii.schema_registry import GlueSchemaRegistryClient
 from fluvii.metrics import MetricsManager
 from .config import FluviiConfig
 import logging
@@ -60,11 +61,12 @@ class FluviiApp:
 
     def _set_schema_registry(self):
         LOGGER.debug('Setting up Schema Registry...')
-        self._schema_registry = SchemaRegistry(auth_config=self._config.schema_registry_auth_config).registry
+        self._schema_registry = GlueSchemaRegistryClient(auth_config=self._config.schema_registry_auth_config)
 
     def _set_producer(self, force_init=False):
         if (not self._producer) or force_init:
             LOGGER.debug('Setting up Kafka Transactional Producer')
+            print(self._config.client_auth_config)
             self._producer = self._producer_cls(
                 urls=self._config.client_urls,
                 client_auth_config=self._config.client_auth_config,

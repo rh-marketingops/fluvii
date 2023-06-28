@@ -3,12 +3,15 @@ import mmh3
 import boto3
 import uuid
 from botocore.exceptions import BotoCoreError, ClientError
-from confluent_kafka.schema_registry import RegisteredSchema
+from confluent_kafka.schema_registry import RegisteredSchema, Schema
 LOGGER = logging.getLogger(__name__)
 
 def getUUIDtoInt(schemaId) :
     schema_id = uuid.UUID(schemaId)
     return schema_id.int
+
+def getInttoUUID(schemaInt) : 
+    return uuid.UUID(int=schemaInt)
 
 class EntityNotFoundException(Exception):
     def __init__(self, entity_type, entity_name):
@@ -49,7 +52,7 @@ class GlueSchemaRegistryClient:
             schema (Schema): Schema instance to register
 
         Returns:
-            int: Schema id
+            string: Schema id
 
         Raises:
             SchemaRegistryError: if Schema violates this subject's
@@ -66,7 +69,7 @@ class GlueSchemaRegistryClient:
         except self.client.exceptions.EntityNotFoundException:
             try:
                 #Check if schema already exists first
-                response = self.client.create_schema(
+                schema = self.client.create_schema(
                     RegistryId={
                         'RegistryName': self._auth.registry_name,
                     },
@@ -75,16 +78,16 @@ class GlueSchemaRegistryClient:
                     SchemaDefinition=schema.schema_str,
                     Compatibility='BACKWARD'
                 )
-                #LOGGER.info(response)
-                #return [11, 22, 33]
-                schema_id = uuid.UUID(response['SchemaVersionId'])
-
-                return getUUIDtoInt(response['SchemaVersionId']);
+                return getUUIDtoInt(schema['SchemaVersionId'])
             except (BotoCoreError, ClientError) as e:
                 print(e)
                 LOGGER.debug(f"An error occurred while creating schema: {e}")
                 return None
         
+    def get_schema(self, schema_id) :
+        schema_id_decode = str(getInttoUUID(schema_id));
+        schema = self.client.get_schema_version(SchemaVersionId=schema_id_decode)
+        return Schema(schema_str=schema['SchemaDefinition'],schema_type='AVRO')
 
 
     def get_latest_version(self, schema_name, schema_version_id, registry_name):

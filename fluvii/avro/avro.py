@@ -1,5 +1,5 @@
-from confluent_kafka.schema_registry.avro import AvroSerializer, schemaless_writer, AvroDeserializer, pack, unpack, _ContextStringIO, _MAGIC_BYTE
-
+from confluent_kafka.schema_registry.avro import AvroSerializer, schemaless_writer, AvroDeserializer, pack, unpack, _ContextStringIO, _MAGIC_BYTE, _schema_loads
+from json import loads
 from fastavro import (parse_schema,
                       schemaless_reader,
                       schemaless_writer)
@@ -56,7 +56,6 @@ class FluviiAvroSerializer(AvroSerializer) :
             value = self._to_dict(obj, ctx)
         else:
             value = obj
-        print(self._schema_id)
         with _ContextStringIO() as fo: 
             max_int64 = 0xFFFFFFFFFFFFFFFF          
             # Write the magic byte and schema ID in network byte order (big endian)
@@ -97,8 +96,6 @@ class FluviiAvroDeSerializer(AvroDeserializer):
            
             magic, schema_id1, schema_id2 = unpack('>bQQ', payload.read(17))
             schema_id = (schema_id1 << 64) | schema_id2
-            print(payload.read())
-            print(schema_id)
             if magic != _MAGIC_BYTE:
                 raise SerializationError("Unknown magic byte. This message was"
                                          " not produced with a Confluent"

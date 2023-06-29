@@ -1,1 +1,1 @@
-from .avro import FluviiAvroDeSerializer, FluviiAvroDeSerializer
+from .avro import FluviiAvroDeSerializer, FluviiAvroSerializer

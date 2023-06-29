@@ -1,5 +1,5 @@
 from confluent_kafka import DeserializingConsumer, TopicPartition
-from fluvii.avro.avro import FluviiAvroDeSerializer
+from fluvii.avro import FluviiAvroDeSerializer
 from fluvii.exceptions import NoMessageError, ConsumeMessageError, FinishedTransactionBatch, TransactionNotRequired
 from fluvii.general_utils import parse_headers, get_guid_from_message
 from copy import deepcopy

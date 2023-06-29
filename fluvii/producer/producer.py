@@ -1,7 +1,7 @@
 import os
 
 from confluent_kafka import SerializingProducer
-from fluvii.avro.avro import FluviiAvroSerializer
+from fluvii.avro import FluviiAvroSerializer
 from confluent_kafka.avro import load as avro_load
 
 from fluvii.general_utils import parse_headers

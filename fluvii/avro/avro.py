@@ -49,7 +49,6 @@ class FluviiAvroSerializer(AvroSerializer) :
                     registered_schema = self._registry.lookup_schema(subject,
                                                                      self._schema)
                     self._schema_id = registered_schema.schema_id
-                    #print(self._schema_id)
             self._known_subjects.add(subject)
        
         if self._to_dict is not None:
@@ -57,7 +56,8 @@ class FluviiAvroSerializer(AvroSerializer) :
         else:
             value = obj
         with _ContextStringIO() as fo: 
-            max_int64 = 0xFFFFFFFFFFFFFFFF          
+            max_int64 = 0xFFFFFFFFFFFFFFFF
+            print(self._schema_id)        
             # Write the magic byte and schema ID in network byte order (big endian)
             #fo.write(pack('>bI', _MAGIC_BYTE, self._schema_id))
             fo.write(pack('>bQQ', _MAGIC_BYTE, (self._schema_id >> 64) & max_int64, self._schema_id & max_int64))

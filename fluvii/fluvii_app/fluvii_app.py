@@ -66,7 +66,6 @@ class FluviiApp:
     def _set_producer(self, force_init=False):
         if (not self._producer) or force_init:
             LOGGER.debug('Setting up Kafka Transactional Producer')
-            print(self._config.client_auth_config)
             self._producer = self._producer_cls(
                 urls=self._config.client_urls,
                 client_auth_config=self._config.client_auth_config,

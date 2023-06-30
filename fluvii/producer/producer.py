@@ -1,7 +1,7 @@
 import os
 
 from confluent_kafka import SerializingProducer
-from fluvii.avro import FluviiAvroSerializer
+from fluvii.avro import GlueAvroSerializer
 from confluent_kafka.avro import load as avro_load
 
 from fluvii.general_utils import parse_headers
@@ -71,7 +71,7 @@ class Producer:
             "acks": "all",
 
             # Registry Serialization Settings
-            "key.serializer": FluviiAvroSerializer(self._schema_registry, schema_str='{"type": "string"}'),
+            "key.serializer": GlueAvroSerializer(self._schema_registry, schema_str='{"type": "string"}'),
             "value.serializer": lambda: None,
         }
 
@@ -149,7 +149,7 @@ class Producer:
         LOGGER.info(f'Adding serializer for producer topic {topic}')
         if isinstance(schema, str):
             schema = self._load_schema_from_str(schema)
-        self.topic_schemas.update({topic: FluviiAvroSerializer(self._schema_registry, json.dumps(schema))})
+        self.topic_schemas.update({topic: GlueAvroSerializer(self._schema_registry, json.dumps(schema))})
 
     def add_topic(self, topic, schema, overwrite=False):
         """For adding topics at runtime"""

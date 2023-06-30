@@ -1,2 +1,2 @@
 from .schema_registry import SchemaRegistry
-from .glue_schema_registry_client import GlueSchemaRegistryClient
+from .glue_schema_registry import GlueSchemaRegistryClient

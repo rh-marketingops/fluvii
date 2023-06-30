@@ -1,6 +1,6 @@
 from fluvii.producer import ProducerConfig
 from fluvii.consumer import ConsumerConfig
-from fluvii.auth import SaslPlainClientConfig, AWSRegistryConfig, SaslOauthClientConfig
+from fluvii.auth import SaslPlainClientConfig, GlueRegistryClientConfig, SaslOauthClientConfig
 from fluvii.metrics import MetricsManagerConfig, MetricsPusherConfig
 from os import environ
 from datetime import datetime
@@ -50,7 +50,7 @@ class FluviiConfig:
                         environ["FLUVII_CLIENT_MECHANISMS"]
                     )
         if not schema_registry_auth_config:
-            schema_registry_auth_config = AWSRegistryConfig(
+            schema_registry_auth_config = GlueRegistryClientConfig(
                 environ["FLUVII_SCHEMA_REGISTRY_ACCESS_KEY_ID"],
                 environ["FLUVII_SCHEMA_REGISTRY_SECRET_ACCESS_KEY"],
                 environ["FLUVII_SCHEMA_REGISTRY_REGION_NAME"],

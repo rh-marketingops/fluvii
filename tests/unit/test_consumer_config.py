@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from fluvii.consumer import ConsumerConfig
 
+
 def test_everything_has_a_default():
     config = ConsumerConfig()
     assert config.as_client_dict() == {
@@ -16,6 +17,7 @@ def test_everything_has_a_default():
         'session.timeout.ms': 120_000,
     }
 
+
 def test_environment_variables_can_override():
     with patch.dict(os.environ, {
             "FLUVII_CONSUMER_AUTO_COMMIT_INTERVAL_SECONDS": "50",
@@ -25,6 +27,7 @@ def test_environment_variables_can_override():
     cd = config.as_client_dict()
     assert cd["auto.commit.interval.ms"] == 50_000
     assert config.batch_consume_max_time_seconds == 30
+
 
 def test_calculated_properties_are_overridable():
     config = ConsumerConfig()

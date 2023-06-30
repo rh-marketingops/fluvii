@@ -8,7 +8,7 @@ install_requires = [
     "prometheus_client",
     "pydantic",
     "sqlitedict",
-    "aws-glue-schema-registry>=1.1.2",
+    "boto3>=1.26.164",
 ]
 
 dev_requires = install_requires + [

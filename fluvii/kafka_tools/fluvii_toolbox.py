@@ -2,7 +2,7 @@ from fluvii.general_utils import Admin
 from fluvii.producer import Producer
 from fluvii.fluvii_app import FluviiConfig
 from fluvii.auth import SaslPlainClientConfig
-from fluvii.schema_registry import SchemaRegistry
+from fluvii.schema_registry import SchemaRegistry, GlueSchemaRegistryClient
 from confluent_kafka.admin import NewTopic, ConfigResource
 from fluvii.kafka_tools.topic_dumper import TopicDumperApp
 import logging
@@ -22,7 +22,7 @@ class FluviiToolbox:
         self._config = fluvii_config
         admin_auth = self._config.client_auth_config
         if self._config.client_auth_config:
-            admin_auth = SaslPlainClientConfig(username=admin_auth.username, password=admin_auth.password)
+            admin_auth = SaslPlainClientConfig(username=admin_auth.username, password=admin_auth.password, )
         self.admin = Admin(self._config.client_urls, admin_auth)
 
     def list_topics(self, valid_only=True, include_configs=False):
@@ -105,7 +105,7 @@ class FluviiToolbox:
             urls=self._config.client_urls,
             client_auth_config=self._config.client_auth_config,
             topic_schema_dict=topic_schema_dict,
-            schema_registry=SchemaRegistry(self._config.schema_registry_url, auth_config=self._config.schema_registry_auth_config).registry
+            schema_registry=GlueSchemaRegistryClient(auth_config=self._config.schema_registry_auth_config)
         )
         LOGGER.info('Producing messages...')
         poll = 0

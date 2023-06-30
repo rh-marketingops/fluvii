@@ -1,1 +1,1 @@
-from .config import SaslPlainClientConfig, AWSRegistryConfig, SaslOauthClientConfig
+from .config import SaslPlainClientConfig, GlueRegistryClientConfig, SaslOauthClientConfig

@@ -7,4 +7,4 @@ pytest==7.4.0
 Requests==2.31.0
 setuptools==67.8.0
 sqlitedict==2.1.0
-aws-glue-schema-registry==1.1.2
+boto3==1.26.164

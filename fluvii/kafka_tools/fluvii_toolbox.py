@@ -1,7 +1,7 @@
 from fluvii.general_utils import Admin
 from fluvii.producer import Producer
 from fluvii.fluvii_app import FluviiConfig
-from fluvii.auth import SaslPlainClientConfig
+from fluvii.auth import SaslScramClientConfig
 from fluvii.schema_registry import SchemaRegistry, GlueSchemaRegistryClient
 from confluent_kafka.admin import NewTopic, ConfigResource
 from fluvii.kafka_tools.topic_dumper import TopicDumperApp
@@ -22,7 +22,7 @@ class FluviiToolbox:
         self._config = fluvii_config
         admin_auth = self._config.client_auth_config
         if self._config.client_auth_config:
-            admin_auth = SaslPlainClientConfig(username=admin_auth.username, password=admin_auth.password, )
+            admin_auth = SaslScramClientConfig(username=admin_auth.username, password=admin_auth.password, )
         self.admin = Admin(self._config.client_urls, admin_auth)
 
     def list_topics(self, valid_only=True, include_configs=False):

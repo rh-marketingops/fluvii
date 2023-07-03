@@ -1,6 +1,6 @@
 from fluvii.producer import ProducerConfig
 from fluvii.consumer import ConsumerConfig
-from fluvii.auth import SaslPlainClientConfig, GlueRegistryClientConfig, SaslOauthClientConfig
+from fluvii.auth import SaslScramClientConfig, GlueRegistryClientConfig
 from fluvii.metrics import MetricsManagerConfig, MetricsPusherConfig
 from os import environ
 from datetime import datetime
@@ -35,20 +35,14 @@ class FluviiConfig:
         # Set only if env var or object is specified
         if not client_auth_config:
             if environ.get("FLUVII_CLIENT_USERNAME"):
-                if environ.get("FLUVII_OAUTH_URL"):
-                    LOGGER.info('Kafka clients will be initialized with OAUTH authentication')
-                    client_auth_config = SaslOauthClientConfig(
-                        environ["FLUVII_CLIENT_USERNAME"],
-                        environ["FLUVII_CLIENT_PASSWORD"],
-                        environ["FLUVII_OAUTH_URL"],
-                        environ["FLUVII_OAUTH_SCOPE"])
-                else:
-                    LOGGER.info('Kafka clients will be initialized with SCRAM 512 authentication')
-                    client_auth_config = SaslPlainClientConfig(
-                        environ["FLUVII_CLIENT_USERNAME"],
-                        environ["FLUVII_CLIENT_PASSWORD"],
-                        environ["FLUVII_CLIENT_MECHANISMS"]
-                    )
+                LOGGER.info('Kafka clients will be initialized with SCRAM 512 authentication')
+                client_auth_config = SaslScramClientConfig(
+                    environ["FLUVII_CLIENT_USERNAME"],
+                    environ["FLUVII_CLIENT_PASSWORD"],
+                    environ["FLUVII_CLIENT_MECHANISMS"]
+                )
+            else:
+                LOGGER.info('Kafka clients will not be initialized with SCRAM 512 authentication')
         if not schema_registry_auth_config:
             schema_registry_auth_config = GlueRegistryClientConfig(
                 environ["FLUVII_SCHEMA_REGISTRY_ACCESS_KEY_ID"],

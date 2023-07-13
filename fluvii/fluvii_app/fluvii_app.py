@@ -3,7 +3,7 @@ from fluvii.exceptions import SignalRaise, GracefulTransactionFailure, FatalTran
 from fluvii.consumer import TransactionalConsumer
 from fluvii.producer import TransactionalProducer
 from fluvii.transaction import Transaction
-from fluvii.schema_registry import SchemaRegistry
+
 from fluvii.schema_registry import GlueSchemaRegistryClient
 from fluvii.metrics import MetricsManager
 from .config import FluviiConfig
@@ -55,9 +55,8 @@ class FluviiApp:
     def _init_metrics_manager(self):
         LOGGER.info("Initializing the MetricsManager...")
         if not self.metrics_manager:
-            pass
-            # self.metrics_manager = MetricsManager(
-            #     metrics_config=self._config.metrics_manager_config, pusher_config=self._config.metrics_pusher_config)
+            self.metrics_manager = MetricsManager(
+                metrics_config=self._config.metrics_manager_config, pusher_config=self._config.metrics_pusher_config)
 
     def _set_schema_registry(self):
         LOGGER.debug('Setting up Schema Registry...')
@@ -144,7 +143,7 @@ class FluviiApp:
         self.kafka_cleanup()
 
     def _runtime_init(self):
-        #self._init_metrics_manager()
+        self._init_metrics_manager()
         self._init_clients()
 
     def _run(self, **kwargs):

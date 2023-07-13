@@ -66,28 +66,10 @@ class GlueSchemaRegistryClient:
                 LOGGER.debug(f"An error occurred while creating schema: {e}")
                 return None
         
-    def get_schema(self, schema_id) :
-        schema_id_decode = str(get_int_to_uuid(schema_id));
+    def get_schema(self, schema_id):
+        schema_id_decode = str(get_int_to_uuid(schema_id))
         schema = self.client.get_schema_version(SchemaVersionId=schema_id_decode)
-        return Schema(schema_str=schema['SchemaDefinition'],schema_type='AVRO')
-
-    # ToDO: Fix schema.int
-    # def get_latest_version(self, schema_name, schema_version_id, registry_name):
-    #     try:
-    #         response = self.client.get_schema_version(
-    #             SchemaId={
-    #                 'RegistryName': registry_name,
-    #                 'SchemaName': schema_name
-    #             },
-    #             SchemaVersionNumber={
-    #                 'LatestVersion': True
-    #             }
-    #         )
-    #         schema_id = uuid.UUID(response['SchemaVersionId'])
-    #         return RegisteredSchema(schema.int, response['SchemaDefinition'], registry_name, response['VersionNumber'])
-    #     except (BotoCoreError, ClientError) as e:
-    #         LOGGER.debug(f"An error occurred while retrieving schema version: {e}")
-    #         return None
+        return Schema(schema_str=schema['SchemaDefinition'], schema_type='AVRO')
 
     def update_schema_definition(self, schema_name, schema_definition):
         try:

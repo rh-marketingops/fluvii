@@ -22,7 +22,7 @@ class FluviiToolbox:
         self._config = fluvii_config
         admin_auth = self._config.client_auth_config
         if self._config.client_auth_config:
-            admin_auth = SaslScramClientConfig(username=admin_auth.username, password=admin_auth.password, )
+            admin_auth = SaslScramClientConfig(username=admin_auth.username, password=admin_auth.password, mechanisms=admin_auth.mechanisms)
         self.admin = Admin(self._config.client_urls, admin_auth)
 
     def list_topics(self, valid_only=True, include_configs=False):

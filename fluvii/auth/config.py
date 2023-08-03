@@ -1,4 +1,4 @@
-rom fluvii.config_base import KafkaConfigBase
+from fluvii.config_base import KafkaConfigBase
 import requests
 import time
 

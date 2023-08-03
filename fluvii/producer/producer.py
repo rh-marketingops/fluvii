@@ -95,7 +95,7 @@ class Producer:
 
     def _add_serializer(self, topic, schema):
         LOGGER.info(f'Adding serializer for producer topic {topic}')
-        self.topic_schemas.update({topic: AvroSerializer(self._schema_registry, json.dumps(schema))})
+        self.topic_schemas.update({topic: GlueAvroSerializer(self._schema_registry, json.dumps(schema))})
 
     def add_topic(self, topic, schema, overwrite=False):
         """For adding topics at runtime"""

@@ -2,11 +2,13 @@ import setuptools
 
 
 install_requires = [
+    "click",
     "confluent-kafka[avro]>=1.9,<2",
     "mmh3",
     "prometheus_client",
     "pydantic",
     "sqlitedict",
+    "boto3>=1.26.164"
 ]
 
 dev_requires = install_requires + [

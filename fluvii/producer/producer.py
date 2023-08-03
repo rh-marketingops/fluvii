@@ -1,5 +1,6 @@
 from confluent_kafka import SerializingProducer
-from confluent_kafka.schema_registry.avro import AvroSerializer
+from fluvii.avro import GlueAvroSerializer
+from confluent_kafka.avro import load as avro_load
 from fluvii.general_utils import parse_headers, Admin
 from fluvii.exceptions import ProducerTimeoutFailure
 import json
@@ -58,7 +59,7 @@ class Producer:
             "acks": "all",
 
             # Registry Serialization Settings
-            "key.serializer": AvroSerializer(self._schema_registry, schema_str='{"type": "string"}'),
+            "key.serializer": GlueAvroSerializer(self._schema_registry, schema_str='{"type": "string"}'),
             "value.serializer": lambda: None,
         }
 

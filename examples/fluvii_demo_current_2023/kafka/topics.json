@@ -1,0 +1,15 @@
+{
+  "account_update_requests": {
+    "partitions": 3,
+    "replication.factor": 1
+  },
+  "account_notifications": {
+    "partitions": 3,
+    "replication.factor": 1
+  },
+  "account-changes-processor__changelog": {
+    "partitions": 3,
+    "replication.factor": 1,
+    "cleanup.policy": "compact"
+  }
+}

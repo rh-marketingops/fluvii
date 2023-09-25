@@ -6,7 +6,7 @@ install_requires = [
     "confluent-kafka[avro]>=1.9,<2",
     "mmh3",
     "prometheus_client",
-    "pydantic[dotenv]",
+    "pydantic[dotenv]<2",
     "sqlitedict",
 ]
 

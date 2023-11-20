@@ -44,7 +44,10 @@ class SqliteFluvii:
 
     def _init_db(self):
         LOGGER.debug(f'initing table {self.table_name}')
-        db = SqliteDict(self.full_db_path.as_posix(), tablename='fluvii', autocommit=False, journal_mode="WAL")
+        try:
+            db = SqliteDict(self.full_db_path.as_posix(), tablename='fluvii', autocommit=False, journal_mode="WAL")
+        except DatabaseError as e:
+            self._handle_database_error(e)
         self.db = db
         sleep(.2)
         if self._allow_commits:
@@ -85,6 +88,19 @@ class SqliteFluvii:
         LOGGER.info(f'Pruning {remove_count} from {len(self.db_cache)} table {self.table_name} db cached records')
         self.db_cache = {d: self.db_cache[d] for idx, d in enumerate(self.db_cache) if idx > remove_count}
 
+    def _handle_database_error(self, exc: DatabaseError):
+        if any('malformed' in arg or 'file is not a database' in arg for arg in exc.args):
+            LOGGER.error(f'Database {self.table_name} is corrupt; deleting all related files and terminating application '
+                         f'so the db will rebuild via restart')
+            delete_files = [self.db_folder / f for f in os.listdir(self.db_folder.as_posix()) if f.startswith(f'{self.table_name}.sqlite')]
+            LOGGER.info(f'Deleting the following files: {delete_files}')
+            for f in delete_files:
+                os.remove(f.as_posix())
+                sleep(.2)
+            LOGGER.info('File deletion complete; re-raising error')
+            raise exc
+        LOGGER.error("Unhandled DatabaseError; here is the exception info:", exc_info=exc)
+
     def commit(self):
         if not self._allow_commits:
             raise Exception('This client instance is read-only. Re-init with "allow_commits=True" to enable commits')
@@ -101,16 +117,7 @@ class SqliteFluvii:
             self.db_cache.update(self.write_cache)
             self.write_cache = {}
         except DatabaseError as e:
-            if [arg for arg in e.args if 'malformed' in arg]:
-                LOGGER.error(f'Database {self.table_name} is corrupt; deleting all related files and terminating application '
-                             f'so the db will rebuild via restart')
-                delete_files = [self.db_folder / f for f in os.listdir(self.db_folder.as_posix()) if f.startswith(f'{self.table_name}.sqlite')]
-                LOGGER.info(f'Deleting the following files: {delete_files}')
-                for f in delete_files:
-                    os.remove(f.as_posix())
-                    sleep(.2)
-                LOGGER.info('File deletion complete; re-raising error')
-            raise
+            self._handle_database_error(e)
 
     def _confirm_previous_read_in_cache(self):
         """
